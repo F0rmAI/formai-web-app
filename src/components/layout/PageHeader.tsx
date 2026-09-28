@@ -15,7 +15,7 @@ export interface PageHeaderProps {
 /** Encabezado de página web. */
 export function PageHeader({ title, subtitle, breadcrumb, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn('flex w-full items-end justify-between gap-2xl', className)}>
+    <header className={cn('flex w-full flex-col items-stretch gap-xl sm:flex-row sm:items-end sm:justify-between sm:gap-2xl', className)}>
       <div className="flex min-w-0 flex-1 flex-col gap-xs">
         {breadcrumb && (
           <Text variant="label-m" tone="muted">
@@ -31,7 +31,11 @@ export function PageHeader({ title, subtitle, breadcrumb, actions, className }: 
           </Text>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-start gap-md">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap items-start gap-md [&>*]:flex-1 sm:shrink-0 sm:[&>*]:flex-none">
+          {actions}
+        </div>
+      )}
     </header>
   )
 }

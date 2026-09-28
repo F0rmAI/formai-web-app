@@ -1,3 +1,4 @@
+export { AppShell, type AppShellProps } from './AppShell'
 export { PageHeader, type PageHeaderProps } from './PageHeader'
 export { Sidebar, type SidebarNavItem, type SidebarProps, type SidebarSection } from './Sidebar'
 export { SidebarItem, type SidebarItemProps } from './SidebarItem'
