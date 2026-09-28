@@ -1,0 +1,162 @@
+/*
+ * FormAI Design Tokens — fuente: Figma › formai_design_system › FormAI · Foundations
+ *
+ * Este archivo es IDÉNTICO en formai-web-app y formai-mobile-app.
+ * Si cambias un token, cámbialo en ambos repositorios.
+ *
+ * Mapeo Figma → utilidad Tailwind:
+ *   primary/base            → bg-primary, text-primary, border-primary
+ *   text/primary            → text-content-primary   (prefijo "content" para evitar text-text-*)
+ *   border/subtle           → border-line-subtle     (prefijo "line" para evitar border-border-*)
+ *   FormAI/Title            → text-title             (tamaño + interlineado + tracking)
+ *   FormAI/Radius md        → rounded-md
+ *   FormAI/Spacing xl       → p-xl, gap-xl, m-xl…
+ *   FormAI/Elevation Card   → shadow-card
+ *
+ * El peso tipográfico NO vive aquí: lo aplica el componente <Text> de cada plataforma
+ * (en React Native cada peso es una familia distinta).
+ */
+
+@theme {
+  /* ── Color ─────────────────────────────────────────────────────────────
+   * Se reinicia la paleta por defecto de Tailwind: solo existen los colores
+   * del design system (+ white/black).
+   */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* primary */
+  --color-primary: #004ac6;
+  --color-primary-bright: #2563eb;
+  --color-primary-container: #dbe1ff;
+  --color-primary-on-container: #00174b;
+  --color-primary-pale: #eef0ff;
+
+  /* secondary */
+  --color-secondary: #fe6b00;
+  --color-secondary-text: #a04100;
+  --color-secondary-container: #ffdbcc;
+  --color-secondary-on-container: #351000;
+  --color-secondary-on-container-variant: #7a3000;
+
+  /* tertiary */
+  --color-tertiary: #005e6e;
+  --color-tertiary-container: #acedff;
+
+  /* error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+
+  /* surface */
+  --color-surface-background: #faf8ff;
+  --color-surface-card: #ffffff;
+  --color-surface-container-low: #f2f3ff;
+  --color-surface-container: #eaedff;
+  --color-surface-container-high: #e2e7ff;
+  --color-surface-container-highest: #dae2fd;
+  --color-surface-inverse: #283044;
+
+  /* text (content) */
+  --color-content-primary: #131b2e;
+  --color-content-secondary: #434655;
+  --color-content-muted: #737686;
+  --color-content-subtle: #c3c6d7;
+  --color-content-on-primary: #ffffff;
+  --color-content-on-inverse: #eef0ff;
+
+  /* border (line) */
+  --color-line-subtle: #eaedff;
+  --color-line-outline: #c3c6d7;
+
+  /* effect */
+  --color-effect-nav-shadow: #2563eb14;
+  --color-effect-glow-primary: #004ac633;
+  --color-effect-glow-secondary: #fe6b0040;
+
+  /* ── Radius ─────────────────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  /* full (9999px) → utilidad nativa rounded-full */
+
+  /* ── Spacing ────────────────────────────────────────────────────────────
+   * Tokens con nombre de Figma. La escala numérica de Tailwind (p-4 = 16px)
+   * sigue disponible para medidas de layout que no son tokens.
+   */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 10px;
+  --spacing-xl: 16px;
+  --spacing-2xl: 24px;
+  --spacing-page-top: 64px;
+  --spacing-page-bottom: 96px;
+
+  /* ── Tipografía (Plus Jakarta Sans) ────────────────────────────────────
+   * Se reinicia la escala por defecto: solo existen los estilos FormAI/*.
+   */
+  --text-*: initial;
+
+  --text-display-xl: 40px;
+  --text-display-xl--line-height: 44px;
+  --text-display-xl--letter-spacing: -1px;
+
+  --text-display: 26px;
+  --text-display--line-height: 34px;
+  --text-display--letter-spacing: -0.65px;
+
+  --text-headline: 22px;
+  --text-headline--line-height: 30px;
+  --text-headline--letter-spacing: -0.22px;
+
+  --text-title: 18px;
+  --text-title--line-height: 26px;
+  --text-title--letter-spacing: -0.45px;
+
+  --text-title-strong: 18px;
+  --text-title-strong--line-height: 26px;
+  --text-title-strong--letter-spacing: 0px;
+
+  --text-label-l: 14px;
+  --text-label-l--line-height: 20px;
+  --text-label-l--letter-spacing: 0.14px;
+
+  --text-body-l-strong: 14px;
+  --text-body-l-strong--line-height: 20px;
+  --text-body-l-strong--letter-spacing: 0.14px;
+
+  --text-body-l: 14px;
+  --text-body-l--line-height: 20px;
+  --text-body-l--letter-spacing: 0px;
+
+  --text-label-m: 12px;
+  --text-label-m--line-height: 16px;
+  --text-label-m--letter-spacing: 0.24px;
+
+  --text-label-m-bold: 12px;
+  --text-label-m-bold--line-height: 16px;
+  --text-label-m-bold--letter-spacing: 0.24px;
+
+  --text-body-m: 12px;
+  --text-body-m--line-height: 16px;
+  --text-body-m--letter-spacing: 0.24px;
+
+  --text-overline: 12px;
+  --text-overline--line-height: 16px;
+  --text-overline--letter-spacing: 0.6px;
+
+  --text-caption: 10px;
+  --text-caption--line-height: 12px;
+  --text-caption--letter-spacing: 0px;
+
+  /* ── Elevación (FormAI/Effect styles) ───────────────────────────────── */
+  --shadow-card: 0px 1px 2px 0px #0000000d;
+  --shadow-soft: 0px 4px 20px -2px #0f172a0d;
+  --shadow-raised: 0px 2px 4px -2px #0000001a, 0px 4px 6px -1px #0000001a;
+  --shadow-floating: 0px 4px 6px -4px #0000001a, 0px 10px 15px -3px #0000001a;
+  --shadow-nav: 0px -4px 24px 0px #2563eb14;
+  --shadow-glow-primary: 0px 2px 4px -2px #004ac633, 0px 4px 6px -1px #004ac633;
+  --shadow-glow-secondary: 0px 4px 6px -4px #fe6b0040, 0px 10px 15px -3px #fe6b0040;
+}
