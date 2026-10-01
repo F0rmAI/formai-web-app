@@ -56,7 +56,7 @@ function RoutineEditor({ routineId }: { routineId?: string }) {
     const state: ToastLocationState = {
       toast: routine ? `Cambios guardados · versión ${result.value.currentVersion}` : 'Rutina guardada como borrador',
     }
-    navigate(ROUTES.routines, { state })
+    navigate(routine ? ROUTES.routineVersions(result.value.id) : ROUTES.routine(result.value.id), { state })
   }
 
   // A routine can still prescribe an archived exercise: it stays available in its own form.
@@ -81,7 +81,17 @@ function RoutineEditor({ routineId }: { routineId?: string }) {
         subtitle={subtitle}
         actions={
           <>
-            <Button label="Cancelar" variant="secondary" size="md" onClick={() => navigate(ROUTES.routines)} />
+            {routine ? (
+              <Button
+                label="Ver versiones"
+                icon="history"
+                variant="secondary"
+                size="md"
+                onClick={() => navigate(ROUTES.routineVersions(routine.id))}
+              />
+            ) : (
+              <Button label="Cancelar" variant="secondary" size="md" onClick={() => navigate(ROUTES.routines)} />
+            )}
             <Button
               label={routine ? 'Guardar cambios' : 'Guardar borrador'}
               icon="save"

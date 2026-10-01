@@ -19,8 +19,10 @@ import { ForgotPasswordSentPage } from '@/pages/ForgotPasswordSentPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
+import { RoutineDetailPage } from '@/pages/RoutineDetailPage'
 import { RoutineEditorPage } from '@/pages/RoutineEditorPage'
 import { RoutinesPage } from '@/pages/RoutinesPage'
+import { RoutineVersionsPage } from '@/pages/RoutineVersionsPage'
 import { GuestOnly, RequireAuth } from './RouteGuards'
 import { ROUTES } from './routes'
 import { TrainerLayout } from './TrainerLayout'
@@ -58,7 +60,9 @@ export function AppRoutes() {
           <Route path={ROUTES.exercises} element={<ExercisesPage />} />
           <Route path={ROUTES.routines} element={<RoutinesPage />} />
           <Route path={ROUTES.routineNew} element={<RoutineEditorPage />} />
+          <Route path={ROUTES.routine(':routineId')} element={<RoutineDetailPage />} />
           <Route path={ROUTES.routineEdit(':routineId')} element={<RoutineEditorPage />} />
+          <Route path={ROUTES.routineVersions(':routineId')} element={<RoutineVersionsPage />} />
         </Route>
       </Route>
 
