@@ -1,73 +1,52 @@
-import { Card, EmptyState, Text } from '@/components/ui'
+/**
+ * Card with the evolution chart of one exercise.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
+import { Card, EmptyState, LineChart, Text } from '@/components/ui'
 import type { ProgressChart } from '@/types/workout'
 
+/**
+ * Props accepted by {@link ProgressChartCard}.
+ */
 export interface ProgressChartCardProps {
+  /** Evolution of the exercise, or `null` while it loads or when the period has no exercise. */
   chart: ProgressChart | null
+  /** Name of the exercise shown in the title. */
   exerciseName?: string
-  hasPeriodData: boolean
 }
 
-export function ProgressChartCard({ chart, exerciseName, hasPeriodData }: ProgressChartCardProps) {
+/**
+ * Shows how the maximum load and the volume of one exercise evolved, or an empty state when there
+ * are fewer than two sessions to compare.
+ */
+export function ProgressChartCard({ chart, exerciseName }: ProgressChartCardProps) {
   const points = chart?.points ?? []
-  const enoughData = Boolean(chart?.enoughData && points.length > 1)
-  const maxLoad = Math.max(...points.map((point) => point.maxLoadKg), 1)
-  const width = 560
-  const height = 160
-  const padding = 16
-
-  const polyline = points
-    .map((point, index) => {
-      const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2)
-      const y = height - padding - (point.maxLoadKg / maxLoad) * (height - padding * 2)
-      return `${x},${y}`
-    })
-    .join(' ')
+  const hasEnoughData = Boolean(chart?.enoughData) && points.length > 1
 
   return (
-    <Card className="flex flex-col gap-lg p-xl">
-      <Text variant="title">
+    <Card className="flex flex-col gap-xl p-2xl">
+      <Text as="h2" variant="title">
         Evolución{exerciseName ? ` · ${exerciseName}` : ''}
       </Text>
 
-      {!hasPeriodData || !enoughData ? (
-        <EmptyState
-          title="Datos insuficientes"
-          description="Cambia el rango de fechas o el ejercicio para ver la evolución de carga."
-          icon="show_chart"
-          className="py-2xl"
+      {hasEnoughData ? (
+        <LineChart
+          label={`Evolución de la carga máxima y el volumen de ${exerciseName ?? 'el ejercicio'}`}
+          series={[
+            { label: 'Carga máxima (kg)', values: points.map((point) => point.maxLoadKg) },
+            { label: 'Volumen (kg)', values: points.map((point) => point.volumeKg), tone: 'secondary' },
+          ]}
+          pointLabels={points.map((_, index) => `S${index + 1}`)}
         />
       ) : (
-        <div className="w-full overflow-x-auto">
-          <svg
-            viewBox={`0 0 ${width} ${height}`}
-            role="img"
-            aria-label={`Evolución de carga máxima de ${exerciseName ?? 'ejercicio'}`}
-            className="h-40 w-full min-w-[280px]"
-          >
-            <polyline
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              points={polyline}
-              className="text-primary"
-            />
-            {points.map((point, index) => {
-              const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2)
-              const y = height - padding - (point.maxLoadKg / maxLoad) * (height - padding * 2)
-              return <circle key={`${point.date}-${index}`} cx={x} cy={y} r="4" className="fill-primary" />
-            })}
-          </svg>
-          <div className="mt-md flex justify-between gap-md">
-            <Text variant="caption" tone="muted">
-              {points[0]?.date}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {points.at(-1)?.date}
-            </Text>
-          </div>
-        </div>
+        <EmptyState
+          title="Aún no hay datos suficientes"
+          description="Este ejercicio necesita al menos dos sesiones registradas para mostrar su evolución."
+          icon="query_stats"
+        />
       )}
     </Card>
   )

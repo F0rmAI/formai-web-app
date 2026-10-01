@@ -1,80 +1,64 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Hook of the workouts of one client.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
+import { useCallback, useRef, useState } from 'react'
 import { workoutsService } from '@/services/workouts.service'
-import type { WorkoutSessionSummary } from '@/types/workout'
+import { useAsyncAction } from './useAsyncAction'
+import { useAsyncData } from './useAsyncData'
 
-export interface SyncWorkoutsResult {
-  sessions: WorkoutSessionSummary[]
-  newCount: number
-}
-
+/**
+ * Loads the workout sessions a client recorded in the mobile app and lets the trainer bring the
+ * new ones.
+ *
+ * @param clientId - Identifier of the client; changing it loads the sessions of another client.
+ * @returns The `sessions` loaded, newest first; the `isLoading` and `error` state; `refetch`;
+ * `lastSyncedAt`, the moment of the last successful load; and `sync` (`isSyncing`), which loads
+ * the sessions again and resolves with an `ActionResult` that carries how many are new.
+ *
+ * @example
+ * ```tsx
+ * const { sessions, isLoading, error, sync, isSyncing } = useClientWorkouts(clientId);
+ * ```
+ */
 export function useClientWorkouts(clientId: string) {
-  const [sessions, setSessions] = useState<WorkoutSessionSummary[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
+  const knownIds = useRef(new Set<string>())
 
-  const loadSessions = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const result = await workoutsService.list(clientId)
-      setSessions(result)
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      const sessions = await workoutsService.list(clientId, signal)
+      knownIds.current = new Set(sessions.map((session) => session.id))
       setLastSyncedAt(new Date())
-    } catch {
-      setError('No pudimos cargar los entrenamientos de este cliente.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [clientId])
+      return sessions
+    },
+    [clientId],
+  )
+  const { data, isLoading, error, refetch, setData } = useAsyncData(
+    load,
+    'No pudimos cargar los entrenamientos de este cliente.',
+  )
 
-  useEffect(() => {
-    let active = true
-    workoutsService
-      .list(clientId)
-      .then((result) => {
-        if (active) {
-          setSessions(result)
-          setLastSyncedAt(new Date())
-        }
-      })
-      .catch(() => {
-        if (active) setError('No pudimos cargar los entrenamientos de este cliente.')
-      })
-      .finally(() => {
-        if (active) setIsLoading(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [clientId])
-
-  /** Refetch listado; reporta cuántas sesiones nuevas aparecieron (sync desde la app). */
-  const syncSessions = useCallback(async (): Promise<SyncWorkoutsResult> => {
-    setIsSyncing(true)
-    setError(null)
-    const previousIds = new Set(sessions.map((session) => session.id))
-    try {
-      const next = await workoutsService.list(clientId)
-      const newCount = next.filter((session) => !previousIds.has(session.id)).length
-      setSessions(next)
-      setLastSyncedAt(new Date())
-      return { sessions: next, newCount }
-    } catch (err) {
-      setError('No pudimos actualizar los entrenamientos de este cliente.')
-      throw err
-    } finally {
-      setIsSyncing(false)
-    }
-  }, [clientId, sessions])
+  const syncAction = useCallback(async () => {
+    const sessions = await workoutsService.list(clientId)
+    const newCount = sessions.filter((session) => !knownIds.current.has(session.id)).length
+    knownIds.current = new Set(sessions.map((session) => session.id))
+    setData(() => sessions)
+    setLastSyncedAt(new Date())
+    return newCount
+  }, [clientId, setData])
+  const synchronization = useAsyncAction(syncAction, 'No pudimos sincronizar los entrenamientos.')
 
   return {
-    sessions,
+    sessions: data ?? [],
     isLoading,
-    isSyncing,
     error,
+    refetch,
     lastSyncedAt,
-    refetch: loadSessions,
-    syncSessions,
+    sync: synchronization.run,
+    isSyncing: synchronization.isRunning,
   }
 }

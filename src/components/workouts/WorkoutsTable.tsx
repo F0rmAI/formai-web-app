@@ -1,72 +1,69 @@
-import { Icon, Text } from '@/components/ui'
-import { TableCell, TableHeaderCell, TableRow } from '@/components/layout'
+/**
+ * Table of the workout sessions of a client.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
+import { Table, TableAction, TableCell, TableHeaderCell, TableRow } from '@/components/layout'
+import { Text } from '@/components/ui'
 import type { WorkoutSessionSummary } from '@/types/workout'
+import { formatDate, formatKg, formatTime } from '@/utils/format'
 import { WorkoutStatusBadge } from './WorkoutStatusBadge'
 
+/**
+ * Props accepted by {@link WorkoutsTable}.
+ */
 export interface WorkoutsTableProps {
+  /** Sessions to list, newest first. */
   sessions: WorkoutSessionSummary[]
+  /** Called with the id of the session the user opens. */
   onOpenSession: (sessionId: string) => void
 }
 
-function formatScheduledFor(value: string) {
-  const date = new Date(`${value}T12:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('es-PE', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-function formatVolume(value: number) {
-  return `${value.toFixed(0)} kg`
-}
-
+/**
+ * Lists the workout sessions of a client in a table and reports which one the user opens.
+ */
 export function WorkoutsTable({ sessions, onOpenSession }: WorkoutsTableProps) {
   return (
-    <div
-      role="region"
-      aria-label="Tabla de entrenamientos desplazable"
-      tabIndex={0}
-      className="overflow-x-auto rounded-lg border border-line-subtle bg-surface-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-    >
-      <div role="table" aria-label="Entrenamientos" className="min-w-[640px]">
-        <TableRow header>
-          <TableHeaderCell label="FECHA" className="flex-1" />
-          <TableHeaderCell label="DÍA" className="w-[140px]" />
-          <TableHeaderCell label="ESTADO" className="w-[130px]" />
-          <TableHeaderCell label="VOLUMEN" className="w-[120px]" />
-          <TableHeaderCell label="ACCIONES" className="w-[72px] justify-end" />
-        </TableRow>
+    <Table label="Entrenamientos">
+      <TableRow header>
+        <TableHeaderCell label="Fecha" />
+        <TableHeaderCell label="Estado" width="md" />
+        <TableHeaderCell label="Sesión" width="lg" />
+        <TableHeaderCell label="Volumen" width="lg" />
+        <TableHeaderCell label="Acciones" width="sm" alignEnd />
+      </TableRow>
 
-        {sessions.map((session) => (
-          <TableRow key={session.id} className="min-h-[63px]">
-            <TableCell className="flex-1">
-              <Text variant="body-l-strong">{formatScheduledFor(session.scheduledFor)}</Text>
+      {sessions.map((session) => {
+        const date = formatDate(session.scheduledFor, 'weekday')
+        return (
+          <TableRow key={session.id}>
+            <TableCell>
+              <Text variant="body-l-strong">{date}</Text>
+              <Text variant="body-m" tone="muted">
+                {session.finishedAt ? `Finalizó a las ${formatTime(session.finishedAt)}` : 'Sin registros'}
+              </Text>
             </TableCell>
-            <TableCell className="w-[140px]">
-              <Text tone="secondary">{session.dayLabel}</Text>
-            </TableCell>
-            <TableCell className="w-[130px]">
+            <TableCell width="md" label="Estado">
               <WorkoutStatusBadge status={session.status} />
             </TableCell>
-            <TableCell className="w-[120px]">
-              <Text tone="secondary">{formatVolume(session.totalVolumeKg)}</Text>
+            <TableCell width="lg" label="Sesión">
+              <Text tone="secondary">{session.dayLabel}</Text>
             </TableCell>
-            <TableCell className="w-[72px] flex-row items-center justify-end">
-              <button
-                type="button"
-                aria-label={`Abrir entrenamiento del ${formatScheduledFor(session.scheduledFor)}`}
+            <TableCell width="lg" label="Volumen">
+              <Text tone="secondary">{formatKg(session.totalVolumeKg, 0)}</Text>
+            </TableCell>
+            <TableCell width="sm" actions>
+              <TableAction
+                icon="chevron_right"
+                label={`Abrir entrenamiento del ${date}`}
                 onClick={() => onOpenSession(session.id)}
-                className="flex size-8 cursor-pointer items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <Icon name="chevron_right" size={20} className="text-content-subtle" />
-              </button>
+              />
             </TableCell>
           </TableRow>
-        ))}
-      </div>
-    </div>
+        )
+      })}
+    </Table>
   )
 }

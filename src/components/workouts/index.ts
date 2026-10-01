@@ -1,10 +1,13 @@
-export { WorkoutsTable, type WorkoutsTableProps } from './WorkoutsTable'
-export { WorkoutStatusBadge } from './WorkoutStatusBadge'
-export { WorkoutDetailView, type WorkoutDetailViewProps } from './WorkoutDetailView'
-export { WorkoutExerciseCard, SetSummaryTile } from './WorkoutExerciseCard'
-export { ProgressFilters, type ProgressFiltersProps } from './ProgressFilters'
-export { ProgressStats, type ProgressStatsProps } from './ProgressStats'
+/**
+ * Public entry point of the workout tracking feature components.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 export { ProgressChartCard, type ProgressChartCardProps } from './ProgressChartCard'
-export { ClientWorkoutsPanel, type ClientWorkoutsPanelProps } from './ClientWorkoutsPanel'
-export { ClientWorkoutDetailPanel, type ClientWorkoutDetailPanelProps } from './ClientWorkoutDetailPanel'
-export { ClientProgressPanel, type ClientProgressPanelProps } from './ClientProgressPanel'
+export { ProgressFilters, type ProgressFiltersProps } from './ProgressFilters'
+export { ProgressSummary, type ProgressSummaryProps } from './ProgressSummary'
+export { WorkoutExerciseCard, type WorkoutExerciseCardProps } from './WorkoutExerciseCard'
+export { WorkoutStatusBadge, type WorkoutStatusBadgeProps } from './WorkoutStatusBadge'
+export { WorkoutsTable, type WorkoutsTableProps } from './WorkoutsTable'
