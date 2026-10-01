@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import { Table, TableAction, TableCell, TableHeaderCell, TableRow } from '@/components/layout'
+import { Table, TableAction, TableCell, TableHeaderCell, TableRow, TableRowLink } from '@/components/layout'
 import { Text } from '@/components/ui'
 import type { Routine } from '@/types/routine'
 import { formatCount } from '@/utils/format'
@@ -23,14 +23,18 @@ function toClients(routine: Routine): string {
 export interface RoutinesTableProps {
   /** Routines to list. */
   routines: Routine[]
+  /** Called with the routine the user opens. */
+  onOpen: (routine: Routine) => void
   /** Called with the routine the user wants to edit; closed routines cannot be edited. */
   onEdit: (routine: Routine) => void
+  /** Called with the routine whose version history the user opens. */
+  onViewVersions: (routine: Routine) => void
 }
 
 /**
- * Lists routines in a table and reports which one the user edits.
+ * Lists routines in a table and reports which one the user opens, edits or checks the versions of.
  */
-export function RoutinesTable({ routines, onEdit }: RoutinesTableProps) {
+export function RoutinesTable({ routines, onOpen, onEdit, onViewVersions }: RoutinesTableProps) {
   return (
     <Table label="Rutinas">
       <TableRow header>
@@ -44,10 +48,14 @@ export function RoutinesTable({ routines, onEdit }: RoutinesTableProps) {
       {routines.map((routine) => (
         <TableRow key={routine.id}>
           <TableCell>
-            <Text variant="body-l-strong">{routine.name}</Text>
-            <Text variant="body-m" tone="muted">
-              Versión {routine.currentVersion} · creada el {routine.createdAtLabel}
-            </Text>
+            <TableRowLink onClick={() => onOpen(routine)}>
+              <Text as="span" variant="body-l-strong">
+                {routine.name}
+              </Text>
+              <Text as="span" variant="body-m" tone="muted">
+                Versión {routine.currentVersion} · creada el {routine.createdAtLabel}
+              </Text>
+            </TableRowLink>
           </TableCell>
           <TableCell width="md" label="Estado">
             <RoutineStatusBadge status={routine.status} />
@@ -61,6 +69,11 @@ export function RoutinesTable({ routines, onEdit }: RoutinesTableProps) {
             <Text tone="secondary">{toClients(routine)}</Text>
           </TableCell>
           <TableCell width="sm" actions>
+            <TableAction
+              icon="history"
+              label={`Ver versiones de ${routine.name}`}
+              onClick={() => onViewVersions(routine)}
+            />
             {routine.status !== 'CLOSED' && (
               <TableAction icon="edit" label={`Editar ${routine.name}`} onClick={() => onEdit(routine)} />
             )}

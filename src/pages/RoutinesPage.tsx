@@ -49,7 +49,12 @@ export function RoutinesPage() {
         )}
 
         {!error && routines.length > 0 && (
-          <RoutinesTable routines={routines} onEdit={(routine) => navigate(ROUTES.routineEdit(routine.id))} />
+          <RoutinesTable
+            routines={routines}
+            onOpen={(routine) => navigate(ROUTES.routine(routine.id))}
+            onEdit={(routine) => navigate(ROUTES.routineEdit(routine.id))}
+            onViewVersions={(routine) => navigate(ROUTES.routineVersions(routine.id))}
+          />
         )}
 
         {!isLoading && !error && routines.length === 0 && (
