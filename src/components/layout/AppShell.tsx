@@ -12,22 +12,27 @@ const trainerSections: SidebarSection[] = [
   },
 ]
 
+export type AppShellNavId = 'clients' | 'exercises' | 'routines'
+
 export interface AppShellProps {
   children: ReactNode
-  onNavigateToClients: () => void
+  activeId: AppShellNavId
+  onNavigate: (id: AppShellNavId) => void
   user?: { name: string; email: string; avatarUrl?: string }
   onSignOut?: () => void
 }
 
-export function AppShell({ children, onNavigateToClients, user, onSignOut }: AppShellProps) {
+export function AppShell({ children, activeId, onNavigate, user, onSignOut }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-surface-background">
       <Sidebar
         roleLabel="Entrenador"
         sections={trainerSections}
-        activeId="clients"
+        activeId={activeId}
         onNavigate={(id) => {
-          if (id === 'clients') onNavigateToClients()
+          if (id === 'clients' || id === 'exercises' || id === 'routines') {
+            onNavigate(id)
+          }
         }}
         user={user ?? { name: 'Entrenador', email: '' }}
         onSignOut={onSignOut}
