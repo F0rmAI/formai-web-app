@@ -22,8 +22,8 @@ npm run typecheck    # tsc -b
 npm run lint         # oxlint
 npm test             # Vitest, single run
 npm run test:watch   # Vitest, watch mode
-npx vitest run src/hooks/useCounter.test.ts        # one test file
-npx vitest run -t "adds one on increment"          # one test by name
+npx vitest run src/hooks/useClients.test.ts        # one test file
+npx vitest run -t "loads the clients"              # one test by name
 ```
 
 `cp .env.example .env` and set `VITE_API_URL` before running against a backend.
@@ -44,6 +44,8 @@ App → Pages → Components
 - `src/hooks/` own state and use cases and are the only bridge to `services`.
 - `src/services/` is the only layer that talks to the backend, always through `apiClient` (`services/api-client.ts`). No `fetch` anywhere else.
 - `src/context/` is for state shared by several pages only; `src/utils/` and `src/types/` depend on nothing above them.
+- `src/navigation/` holds the route table (`ROUTES`), the guards and the route tree; pages and hooks navigate with `ROUTES`, never with hand-written paths.
+- Read hooks are built on `useAsyncData` and write hooks on `useAsyncAction`; pages and components carry no network `try/catch`. Services throw `ServiceError` with a Spanish message: the backend detail is English and is never shown.
 - Every layer folder has a `README.md` with its rules; read it before adding files to that layer.
 - Imports use the `@/` alias for `src/`.
 
@@ -65,7 +67,7 @@ App → Pages → Components
 
 ## Versions
 
-React and React DOM are pinned to **19.3.0** and Tailwind CSS to **4.3.3**; do not change them without the owner's approval. Check current documentation before using an API or adding a dependency.
+React and React DOM are pinned to **19.3.0** and Tailwind CSS to **4.3.3**; routing uses `react-router-dom` 7. do not change them without the owner's approval. Check current documentation before using an API or adding a dependency.
 
 ## Commits
 

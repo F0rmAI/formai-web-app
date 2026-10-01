@@ -3,25 +3,38 @@
 Inter-session project memory. This file contains about 50 lines: summarize or remove content that no longer adds value.
 
 ## Current status (2026-10-01)
-- `main` holds the project base: design tokens, 22 UI primitives, layout components (Sidebar, PageHeader, Table), API client, starter page with a counter.
-- The base passes the frontend audit (layers, tokens, mobile-first, TSDoc, tests): 0 errors, 0 warnings.
-- Vitest + Testing Library are set up; 13 tests pass.
-- Feature work lives in remote branches not merged into `main`: `develop`, `feature/authentication`, `feature/client-management`, `feature/exercises`, `feature/routines`, `feature/workout-tracking`.
+- `develop` holds the trainer web aligned with the standard: flows W1 access, W2 clients, W3 tracking and W4 exercises, and the list and form of W5 routines. The routine detail, duplicate, assign and version history screens are being added in `feature/routines-flow`. `main` (5 local commits, not pushed) and every feature branch are merged into it.
+- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings. 170 tests pass; lint, typecheck and build are clean.
+- The five flows were run in a browser against a local `formai-api` on 2026-10-01 (accounts `qa.trainer.*@formai.test` were left in the local database).
+- Not built: W6 recognition report and W7 machine catalog (TB2, admin role). The backend has no endpoints for them, except `PUT /exercises/{id}/machine-link`.
 
 ## Decisions (and why)
 - React 19.3.0 and Tailwind 4.3.3 pinned exactly: versions required by the project owner.
-- Static weight-400 Material Symbols font instead of the variable one: 572 KB vs 5.4 MB, and the design only uses weight 400.
-- Default Tailwind palette reset in `tokens.css`: only design-system colors can be used.
-- Arbitrary values allowed only inside `components/ui` and `components/layout`: a primitive owns its intrinsic dimensions; pages must use tokens.
-- Layout components made mobile-first (stacked on small screens, columns from `md`): the app must work on narrow screens.
-- TSDoc in English with a per-file `@author` taken from git: one documentation standard for the whole team.
+- One file per resource in `services/` and a single `ServiceError`: the `contract/http/service` trio and `src/mocks` only existed to swap a mock adapter that no longer runs.
+- Backend error details are never shown: they are English and written for developers. Each service defines the Spanish message.
+- `useAsyncData` / `useAsyncAction` under every data hook: one place for cancellation, loading and error handling, and no `try/catch` in pages or components.
+- Column widths, modal width, table actions and the filter bar live in `components/layout` and `components/ui`: pages and feature components carry no arbitrary values or loose measures.
+- Route guards and the route tree live in `src/navigation`: a component must not read `context`.
+- The HTTP client renews the session once on `401` (`/v1/authentication/refresh`): the access cookie lasts 30 minutes and the trainer was being signed out.
+- `Dialog` kept the API it shares with mobile (no icon or spinner on its confirm button), so mockups 2.9, 4.3 and 5.7 show the confirm label without icon.
+- Arbitrary values allowed only inside `components/ui` and `components/layout`; static weight-400 Material Symbols font (572 KB vs 5.4 MB).
+
+## Adaptations to the backend (differ from the mockup on purpose)
+- Repetitions are a single number, not a range (`6–8`): `PrescribedExerciseResource.reps` is an `int`.
+- "Sesiones por semana" is the number of sessions of the routine; changing it adds or removes session cards. The form also has a session name field and add/remove exercise controls the mockup does not draw.
+- The version history shows sessions and exercises per version instead of a change summary: the API stores none.
+- A workout row shows the time it finished, not its duration; the detail badge says "Rutina · versión N" without the routine name: the session resource has neither.
+- 1.7 has no "Abrir enlace del correo" button (it only exists to navigate the prototype). After an expired link the trainer types the email again, because the link carries only a token.
+- The signed-in name is the email prefix after a plain sign-in: `iam` does not return the name. A version author arrives as a user id; the trainer's own versions show the trainer name.
 
 ## Lessons learned and mistakes to avoid
-- When a token is added to `tokens.css`, register it in `src/utils/cn.ts`; otherwise `tailwind-merge` drops a class it thinks conflicts (text size vs text color).
-- `tokens.css` is shared with the mobile repo: never edit it in one repo only.
-- A pre-audit scan of the feature branches found components importing `services` directly, arbitrary values in pages and no breakpoints. They were not audited or fixed.
+- Errors arrive as `application/problem+json`; checking for `application/json` silently dropped every backend message.
+- There is no trainer endpoint for one workout session: read it from `GET /clients/{id}/workout-sessions`, which already carries the exercises.
+- `client-overviews.activeRoutineName` is stale after a same-day reassignment (backend). Routine clients are derived from `/clients/{id}/assignments`; the clients table still shows the overview value.
+- A message carried in `location.state` can arrive after the first render (guard redirect, then navigate): `useToast` picks it up during render.
+- When a token is added to `tokens.css`, register it in `src/utils/cn.ts`. `tokens.css` is shared with the mobile repo: never edit it in one repo only.
 
 ## Next steps
-- Merging the feature branches will conflict with `main` in `components/ui`, `components/layout` and `services/api-client.ts` (comments were rewritten and layout classes changed).
-- Audit the feature branches and align them: move service calls from components into hooks, add TSDoc and tests, make pages mobile-first.
-- Add routing and the auth context on top of the base once the branches are aligned.
+- TB2: W6 and W7, once `formai-api` exposes the machine catalog and the recognition report.
+- Backend: return the trainer name on sign-in, keep `client-overviews` in sync on reassignment, expose the clients of a routine and the usage count of an exercise (both are derived here with extra requests).
+- Push `main` (owner decision) so both remote branches match.

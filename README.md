@@ -61,12 +61,13 @@ Este repositorio es la **aplicación web (SPA)**. La usan:
 
 ```
 src/
-├── components/   ui/ (design system) + layout/ (Sidebar, PageHeader, Table)
+├── components/   ui/ (design system) + layout/ (AppShell, Sidebar, Table…) + una carpeta por funcionalidad
 ├── pages/        páginas completas
 ├── hooks/        estado y casos de uso de la UI
 ├── services/     acceso al backend (apiClient)
-├── context/      estado global (sesión, rol…)
-├── utils/        funciones puras (cn…)
+├── context/      estado global (sesión)
+├── navigation/   rutas (ROUTES), guards y árbol de rutas
+├── utils/        funciones puras (cn, format, validation…)
 ├── types/        tipos compartidos
 ├── assets/       imágenes estáticas (isotipo)
 ├── tokens.css    design tokens de FormAI (idéntico en web y mobile)
@@ -85,7 +86,7 @@ App ──► Pages ──► Components
 Cada carpeta tiene un `README.md` que explica para qué sirve la capa, qué va y qué no, y un ejemplo:
 [components](src/components/README.md) · [pages](src/pages/README.md) · [hooks](src/hooks/README.md) ·
 [services](src/services/README.md) · [context](src/context/README.md) · [utils](src/utils/README.md) ·
-[types](src/types/README.md).
+[types](src/types/README.md) · [navigation](src/navigation/README.md).
 
 ## Design system
 
@@ -98,7 +99,7 @@ Cada carpeta tiene un `README.md` que explica para qué sirve la capa, qué va y
 
 - **Mobile-first:** los estilos base son los de la pantalla pequeña y se amplían con `md:` / `lg:`. Sin variantes `max-*`.
 - **Documentación TSDoc en inglés:** cada archivo lleva una cabecera con `@packageDocumentation` y `@author`, y todo lo exportado tiene su comentario. `@author` está declarado como tag propio en `tsdoc.json`.
-- **Tests junto al archivo** (`*.test.ts(x)`): utilidades, hooks, services y la página inicial.
+- **Tests junto al archivo** (`*.test.ts(x)`): utilidades, services, hooks, contexto, guards, primitivos con interacción y la página de clientes.
 
 ## Primeros pasos
 
@@ -110,8 +111,8 @@ cp .env.example .env     # ajusta VITE_API_URL
 npm run dev              # http://localhost:5173
 ```
 
-Al iniciar verás **"FormAI"** centrado y un contador con un `Button` del design system: sirve para
-comprobar que Tailwind, los tokens, las fuentes, los íconos y los componentes funcionan.
+Al iniciar verás la página de **inicio de sesión**. Con el backend (`formai-api`) en `http://localhost:8080`
+puedes crear una cuenta de entrenador y recorrer clientes, ejercicios y rutinas.
 
 | Script | Qué hace |
 |---|---|

@@ -26,8 +26,9 @@ Backend/API
 - Nombre `<Nombre>Page.tsx` (p. ej. `ClientsPage.tsx`), exportado por nombre.
 - **No llama a `services/` directamente**: usa un hook (`useClients`, `useTodayWorkout`…).
 - Mantiene el markup de alto nivel; si un bloque se repite o crece, se extrae a `components/`.
-- Cuando se agregue el router, cada ruta apunta a una página de esta carpeta.
-- `HomeScreen`/`HomePage` es la pantalla de verificación de la base (título + contador) y se reemplaza al empezar las features.
+- Cada ruta de `navigation/AppRoutes.tsx` apunta a una página de esta carpeta; las rutas se escriben con `ROUTES`, nunca a mano.
+- Las pestañas de un cliente (`ClientProfilePage`, `ClientWorkoutsPage`, `ClientProgressPage`) se renderizan dentro de `ClientLayoutPage`, que carga al cliente una vez y se lo entrega con `useClientOutlet`.
+- Sin `try/catch` de red ni colores o medidas sueltas: los estados de carga, error y vacío usan `LoadingState` y `EmptyState`.
 
 ## Ejemplo
 
