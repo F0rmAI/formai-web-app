@@ -18,7 +18,7 @@ llamadas HTTP a funciones tipadas que consumen los hooks.
 - Todas las llamadas pasan por `apiClient`; no se usa `fetch` suelto en otras capas.
 - Sin estado ni React: funciones puras y asíncronas que devuelven tipos de `types/`.
 - Aquí se mapean los DTO del backend a los modelos del front si difieren.
-- Los datos de prueba viven exclusivamente en `src/mocks/`; páginas, componentes y hooks no los importan.
+- Los datos de prueba viven en `src/mocks/` (no se importan desde páginas/hooks). Clientes en runtime usa `clients.http.ts`.
 - Para integrar el backend se crea un adaptador HTTP que implemente `ClientsService` y se cambia únicamente el punto de composición de `clients.service.ts`.
 
 ## Ejemplo

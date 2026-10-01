@@ -1,9 +1,12 @@
 import { API_URL } from './config'
 
 function problemDetailMessage(body: unknown, fallback: string): string {
-  if (body && typeof body === 'object' && 'detail' in body) {
-    const detail = (body as { detail: unknown }).detail
-    if (typeof detail === 'string' && detail.length > 0) return detail
+  if (body && typeof body === 'object') {
+    const record = body as Record<string, unknown>
+    for (const key of ['detail', 'message', 'title'] as const) {
+      const value = record[key]
+      if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+    }
   }
   return fallback
 }

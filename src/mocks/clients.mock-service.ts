@@ -97,6 +97,21 @@ export function createMockClientsService(): ClientsService {
       return activationCode(client.id, client.fullName, CLIENTS_MOCK_CODES.regeneration)
     },
 
+    async deactivate(clientId: string) {
+      await wait()
+      const client = clients.find(({ id }) => id === clientId)
+      if (!client) throw new ClientsServiceError('CLIENT_NOT_FOUND', 'No se encontró el cliente solicitado.')
+
+      const updatedClient: ClientDetail = {
+        ...client,
+        status: 'INACTIVE',
+        currentRoutine: null,
+        routine: null,
+      }
+      clients = clients.map((item) => (item.id === clientId ? updatedClient : item))
+      return structuredClone(updatedClient)
+    },
+
     async updateBodyProfile(clientId: string, input: UpdateBodyProfileInput) {
       await wait()
       if (input.weight <= 0 || input.height < 100 || input.height > 250) {

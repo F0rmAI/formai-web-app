@@ -34,5 +34,6 @@ export interface ClientsService {
   getById(clientId: string): Promise<ClientDetail>
   register(input: RegisterClientInput): Promise<ActivationCode>
   regenerateCode(clientId: string): Promise<ActivationCode>
+  deactivate(clientId: string): Promise<ClientDetail>
   updateBodyProfile(clientId: string, input: UpdateBodyProfileInput): Promise<ClientDetail>
 }

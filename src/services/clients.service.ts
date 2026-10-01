@@ -1,5 +1,4 @@
-import { createMockClientsService } from '@/mocks/clients.mock-service'
-import type { ClientsService } from './clients.contract'
+import { createHttpClientsService } from './clients.http'
 
 export { ClientsServiceError } from './clients.contract'
 export type { ClientsService, ClientsServiceErrorCode } from './clients.contract'
@@ -7,8 +6,7 @@ export type { ClientsService, ClientsServiceErrorCode } from './clients.contract
 /**
  * Punto único de composición para clientes.
  *
- * Durante el desarrollo usa el adaptador mock. Al integrar el backend se
- * sustituye únicamente esta construcción por el adaptador HTTP; los hooks y
- * componentes seguirán consumiendo el mismo contrato.
+ * Los datos de demostración viven en `src/mocks/` por si se necesita un
+ * adaptador local; el runtime usa el adaptador HTTP de formai-api.
  */
-export const clientsService: ClientsService = createMockClientsService()
+export const clientsService = createHttpClientsService()
