@@ -8,6 +8,8 @@ import { ClientsPage } from '@/pages/ClientsPage'
 import { ClientWebGatePage } from '@/pages/ClientWebGatePage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { RoutineEditorPage } from '@/pages/RoutineEditorPage'
+import { RoutinesPage } from '@/pages/RoutinesPage'
 import { ForgotPasswordSentPage } from '@/pages/ForgotPasswordSentPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -31,7 +33,7 @@ function AuthenticatedLayout() {
       onNavigate={(id) => {
         if (id === 'clients') navigate('/clients')
         if (id === 'exercises') navigate('/exercises')
-        // Rutinas (W5) aún no implementado
+        if (id === 'routines') navigate('/routines')
       }}
       user={{ name: displayName, email: user?.email ?? '' }}
       onSignOut={() => {
@@ -50,6 +52,14 @@ function ClientDetailRoute() {
   if (!clientId) return <Navigate to="/clients" replace />
 
   return <ClientDetailPage clientId={clientId} onBack={() => navigate('/clients')} />
+}
+
+function RoutineEditorRoute() {
+  const { routineId } = useParams<{ routineId: string }>()
+
+  if (!routineId) return <Navigate to="/routines" replace />
+
+  return <RoutineEditorPage routineId={routineId} />
 }
 
 export default function App() {
@@ -72,6 +82,9 @@ export default function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/clients/:clientId" element={<ClientDetailRoute />} />
               <Route path="/exercises" element={<ExercisesPage />} />
+              <Route path="/routines" element={<RoutinesPage />} />
+              <Route path="/routines/new" element={<RoutineEditorPage />} />
+              <Route path="/routines/:routineId" element={<RoutineEditorRoute />} />
             </Route>
           </Route>
 
