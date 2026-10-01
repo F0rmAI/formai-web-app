@@ -1,16 +1,39 @@
+/**
+ * Icon button primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { ButtonHTMLAttributes } from 'react'
 import type { IconButtonVariant, IconName } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { Icon } from './Icon'
 
+/**
+ * Props accepted by {@link IconButton}.
+ */
 export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  /** Icon shown inside the button. */
   icon: IconName
-  /** Texto accesible (obligatorio: el botón no tiene texto visible). */
+  /** Accessible label, required because there is no visible text. */
   label: string
+  /**
+   * Visual style.
+   *
+   * @defaultValue `'tonal'`
+   */
   variant?: IconButtonVariant
 }
 
-/** Botón circular de 40 px. */
+/**
+ * Renders a circular 40 px button that shows only an icon.
+ *
+ * @example
+ * ```tsx
+ * <IconButton icon="tune" label="Filters" onClick={openFilters} />
+ * ```
+ */
 export function IconButton({ icon, label, variant = 'tonal', type = 'button', className, ...props }: IconButtonProps) {
   return (
     <button

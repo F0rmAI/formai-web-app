@@ -1,17 +1,42 @@
+/**
+ * Segmented control primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { SegmentOption } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { Text } from './Text'
 
+/**
+ * Props accepted by {@link SegmentedControl}.
+ *
+ * @typeParam T - Union of the option values.
+ */
 export interface SegmentedControlProps<T extends string> {
+  /** Options shown, in order. */
   options: SegmentOption<T>[]
+  /** Value of the selected option. */
   value: T
+  /** Called with the value of the option the user selects. */
   onChange: (value: T) => void
-  /** Texto accesible del grupo. */
+  /** Accessible label of the group. */
   label?: string
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Selector de periodo u opción única. */
+/**
+ * Renders a single-choice selector with all options visible.
+ *
+ * @typeParam T - Union of the option values.
+ *
+ * @example
+ * ```tsx
+ * <SegmentedControl options={periods} value={period} onChange={setPeriod} />
+ * ```
+ */
 export function SegmentedControl<T extends string>({
   options,
   value,

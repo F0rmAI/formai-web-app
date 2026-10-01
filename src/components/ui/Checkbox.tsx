@@ -1,17 +1,43 @@
+/**
+ * Checkbox primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { useId } from 'react'
 import { cn } from '@/utils/cn'
 import { Icon } from './Icon'
 import { Text } from './Text'
 
+/**
+ * Props accepted by {@link Checkbox}.
+ */
 export interface CheckboxProps {
+  /** Text shown next to the box. */
   label: string
+  /** Whether the box is checked. */
   checked: boolean
+  /** Called with the new checked state. */
   onChange: (checked: boolean) => void
+  /**
+   * Blocks interaction.
+   *
+   * @defaultValue `false`
+   */
   disabled?: boolean
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Casilla con texto. */
+/**
+ * Renders a checkbox with its label.
+ *
+ * @example
+ * ```tsx
+ * <Checkbox label="I accept the terms" checked={accepted} onChange={setAccepted} />
+ * ```
+ */
 export function Checkbox({ label, checked, onChange, disabled = false, className }: CheckboxProps) {
   const id = useId()
 

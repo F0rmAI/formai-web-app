@@ -1,3 +1,10 @@
+/**
+ * Callout primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { CalloutTone, IconName, TextTone } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { Icon } from './Icon'
@@ -12,15 +19,38 @@ const toneStyles: Record<CalloutTone, { container: string; title: TextTone; desc
   },
 }
 
+/**
+ * Props accepted by {@link Callout}.
+ */
 export interface CalloutProps {
+  /** Main message. */
   title: string
+  /** Supporting text shown below the title. */
   description?: string
+  /**
+   * Kind of notice.
+   *
+   * @defaultValue `'info'`
+   */
   tone?: CalloutTone
+  /**
+   * Icon shown before the title.
+   *
+   * @defaultValue `'warning'`
+   */
   icon?: IconName
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Aviso destacado (p. ej. técnica de un ejercicio). */
+/**
+ * Renders a highlighted notice.
+ *
+ * @example
+ * ```tsx
+ * <Callout tone="warning" title="Keep your back straight" description="Lower the load if you cannot." />
+ * ```
+ */
 export function Callout({ title, description, tone = 'info', icon = 'warning', className }: CalloutProps) {
   const styles = toneStyles[tone]
 

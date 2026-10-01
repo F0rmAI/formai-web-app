@@ -1,26 +1,26 @@
 /*
- * FormAI Design Tokens — fuente: Figma › formai_design_system › FormAI · Foundations
+ * FormAI design tokens — source: Figma › formai_design_system › FormAI · Foundations
  *
- * Este archivo es IDÉNTICO en formai-web-app y formai-mobile-app.
- * Si cambias un token, cámbialo en ambos repositorios.
+ * This file is IDENTICAL in formai-web-app and formai-mobile-app.
+ * When a token changes, change it in both repositories.
  *
- * Mapeo Figma → utilidad Tailwind:
+ * Figma → Tailwind utility mapping:
  *   primary/base            → bg-primary, text-primary, border-primary
- *   text/primary            → text-content-primary   (prefijo "content" para evitar text-text-*)
- *   border/subtle           → border-line-subtle     (prefijo "line" para evitar border-border-*)
- *   FormAI/Title            → text-title             (tamaño + interlineado + tracking)
+ *   text/primary            → text-content-primary   ("content" prefix avoids text-text-*)
+ *   border/subtle           → border-line-subtle     ("line" prefix avoids border-border-*)
+ *   FormAI/Title            → text-title             (size + line height + tracking)
  *   FormAI/Radius md        → rounded-md
  *   FormAI/Spacing xl       → p-xl, gap-xl, m-xl…
  *   FormAI/Elevation Card   → shadow-card
  *
- * El peso tipográfico NO vive aquí: lo aplica el componente <Text> de cada plataforma
- * (en React Native cada peso es una familia distinta).
+ * Font weight does NOT live here: the <Text> component of each platform applies it
+ * (in React Native every weight is a separate font family).
  */
 
 @theme {
   /* ── Color ─────────────────────────────────────────────────────────────
-   * Se reinicia la paleta por defecto de Tailwind: solo existen los colores
-   * del design system (+ white/black).
+   * The default Tailwind palette is reset: only the design system colors
+   * exist (+ white/black).
    */
   --color-*: initial;
   --color-white: #ffffff;
@@ -78,11 +78,11 @@
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  /* full (9999px) → utilidad nativa rounded-full */
+  /* full (9999px) → built-in rounded-full utility */
 
   /* ── Spacing ────────────────────────────────────────────────────────────
-   * Tokens con nombre de Figma. La escala numérica de Tailwind (p-4 = 16px)
-   * sigue disponible para medidas de layout que no son tokens.
+   * Named tokens from Figma. The numeric Tailwind scale (p-4 = 16px) stays
+   * available for layout measures that are not tokens.
    */
   --spacing-2xs: 2px;
   --spacing-xs: 4px;
@@ -94,8 +94,8 @@
   --spacing-page-top: 64px;
   --spacing-page-bottom: 96px;
 
-  /* ── Tipografía (Plus Jakarta Sans) ────────────────────────────────────
-   * Se reinicia la escala por defecto: solo existen los estilos FormAI/*.
+  /* ── Typography (Plus Jakarta Sans) ────────────────────────────────────
+   * The default scale is reset: only the FormAI/* text styles exist.
    */
   --text-*: initial;
 
@@ -151,7 +151,7 @@
   --text-caption--line-height: 12px;
   --text-caption--letter-spacing: 0px;
 
-  /* ── Elevación (FormAI/Effect styles) ───────────────────────────────── */
+  /* ── Elevation (FormAI/Effect styles) ───────────────────────────────── */
   --shadow-card: 0px 1px 2px 0px #0000000d;
   --shadow-soft: 0px 4px 20px -2px #0f172a0d;
   --shadow-raised: 0px 2px 4px -2px #0000001a, 0px 4px 6px -1px #0000001a;

@@ -30,6 +30,7 @@ Este repositorio es la **aplicación web (SPA)**. La usan:
 | Estilos | Tailwind CSS (`@tailwindcss/vite`, configuración CSS-first) | **4.3.3** |
 | Lenguaje | TypeScript | 6.0 |
 | Lint | oxlint | 1.x |
+| Tests | Vitest + Testing Library (entorno jsdom) | 5.0 / 16.3 |
 | Tipografía | Plus Jakarta Sans Variable (`@fontsource-variable`) | 5.3 |
 | Íconos | Material Symbols Rounded, peso 400 (`@material-symbols/font-400`) | 0.47 |
 | Utilidades de clases | `clsx` + `tailwind-merge` | 2.1 / 3.7 |
@@ -93,6 +94,12 @@ Cada carpeta tiene un `README.md` que explica para qué sirve la capa, qué va y
 - Los componentes de `components/ui` tienen **la misma API que en la app móvil** y usan **`primary` como color por defecto**; el texto, el tono y el ícono se cambian por props.
 - Los íconos son Material Symbols Rounded por ligadura: `<Icon name="fitness_center" />`.
 
+## Convenciones de código
+
+- **Mobile-first:** los estilos base son los de la pantalla pequeña y se amplían con `md:` / `lg:`. Sin variantes `max-*`.
+- **Documentación TSDoc en inglés:** cada archivo lleva una cabecera con `@packageDocumentation` y `@author`, y todo lo exportado tiene su comentario. `@author` está declarado como tag propio en `tsdoc.json`.
+- **Tests junto al archivo** (`*.test.ts(x)`): utilidades, hooks, services y la página inicial.
+
 ## Primeros pasos
 
 Requisitos: Node.js ≥ 22.
@@ -112,3 +119,5 @@ comprobar que Tailwind, los tokens, las fuentes, los íconos y los componentes f
 | `npm run build` | Typecheck (`tsc -b`) + build de producción en `dist/`. |
 | `npm run preview` | Sirve el build de producción. |
 | `npm run lint` | Lint con oxlint. |
+| `npm run typecheck` | Typecheck (`tsc -b`). |
+| `npm test` | Tests con Vitest (`npm run test:watch` para modo interactivo). |

@@ -1,12 +1,12 @@
 /*
- * Estilos globales de la app web.
- * - tailwindcss: motor de utilidades (v4, configuración CSS-first).
- * - tokens.css: design tokens de FormAI (idéntico en web y mobile).
+ * Global styles of the web app.
+ * - tailwindcss: utility engine (v4, CSS-first configuration).
+ * - tokens.css: FormAI design tokens (identical in web and mobile).
  */
 @import 'tailwindcss';
 @import './tokens.css';
 
-/* Familias tipográficas (específicas de web: la fuente variable cubre todos los pesos) */
+/* Font families (web only: the variable font covers every weight) */
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-icon: 'Material Symbols Rounded';
