@@ -1,16 +1,53 @@
+/**
+ * Layout of the pages shown without a session.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 import type { ReactNode } from 'react'
 import authHero from '@/assets/auth-hero-v2.jpg'
 import { BrandLogo, Text } from '@/components/ui'
 
-const BRAND_HEADLINE = 'Tus clientes, sus rutinas y su progreso en un solo lugar.'
-const BRAND_BODY = 'Crea planes, asígnalos y revisa cada serie que registran desde su app.'
-
-interface AuthLayoutProps {
+/**
+ * Props accepted by {@link AuthLayout}.
+ */
+export interface AuthLayoutProps {
+  /** Form or message shown in the content column. */
   children: ReactNode
+  /**
+   * Headline of the brand panel.
+   *
+   * @defaultValue `'Tus clientes, sus rutinas y su progreso en un solo lugar.'`
+   */
+  headline?: string
+  /**
+   * Supporting text of the brand panel.
+   *
+   * @defaultValue `'Crea planes, asígnalos y revisa cada serie que registran desde su app.'`
+   */
+  description?: string
 }
 
-/** Layout split auth: panel de marca + formulario centrado. */
-export function AuthLayout({ children }: AuthLayoutProps) {
+/**
+ * Renders the split layout of the access pages: a brand panel and a centered content column.
+ *
+ * @remarks
+ * Mobile-first: only the content column with the brand on top on small screens; the brand panel
+ * appears from the `lg` breakpoint.
+ *
+ * @example
+ * ```tsx
+ * <AuthLayout>
+ *   <LoginForm />
+ * </AuthLayout>
+ * ```
+ */
+export function AuthLayout({
+  children,
+  headline = 'Tus clientes, sus rutinas y su progreso en un solo lugar.',
+  description = 'Crea planes, asígnalos y revisa cada serie que registran desde su app.',
+}: AuthLayoutProps) {
   return (
     <div className="flex min-h-dvh w-full bg-surface-background">
       <aside className="hidden w-[560px] shrink-0 flex-col justify-between bg-primary p-14 lg:flex">
@@ -31,11 +68,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         />
 
         <div className="flex flex-col gap-md">
-          <Text as="h1" variant="display" tone="on-primary">
-            {BRAND_HEADLINE}
+          <Text as="p" variant="display" tone="on-primary">
+            {headline}
           </Text>
           <Text variant="body-l" tone="on-inverse">
-            {BRAND_BODY}
+            {description}
           </Text>
         </div>
       </aside>
