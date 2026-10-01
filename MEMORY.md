@@ -3,7 +3,7 @@
 Inter-session project memory. This file contains about 50 lines: summarize or remove content that no longer adds value.
 
 ## Current status (2026-10-01)
-- `develop` holds the trainer web aligned with the standard: flows W1 access, W2 clients, W3 tracking and W4 exercises, and the list and form of W5 routines. The routine detail, duplicate, assign and version history screens are being added in `feature/routines-flow`. `main` (5 local commits, not pushed) and every feature branch are merged into it.
+- `develop` holds the MVP (TB1) of the trainer web: flows W1 access, W2 clients, W3 tracking, W4 exercises and W5 routines, every frame of the Figma page `formai_web_mockup` up to 5.12. `main` (5 local commits, not pushed) and every feature branch are merged into it.
 - Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings. 170 tests pass; lint, typecheck and build are clean.
 - The five flows were run in a browser against a local `formai-api` on 2026-10-01 (accounts `qa.trainer.*@formai.test` were left in the local database).
 - Not built: W6 recognition report and W7 machine catalog (TB2, admin role). The backend has no endpoints for them, except `PUT /exercises/{id}/machine-link`.
