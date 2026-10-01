@@ -1,25 +1,38 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { GuestOnly, RequireAuth } from '@/components/auth/RequireAuth'
-import { AppShell } from '@/components/layout'
+import { AppShell, type AppShellNavId } from '@/components/layout'
 import { AuthProvider } from '@/context/AuthProvider'
 import { useAuth } from '@/context/useAuth'
 import { ClientDetailPage } from '@/pages/ClientDetailPage'
 import { ClientsPage } from '@/pages/ClientsPage'
 import { ClientWebGatePage } from '@/pages/ClientWebGatePage'
+import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { ForgotPasswordSentPage } from '@/pages/ForgotPasswordSentPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 
+function navIdFromPath(pathname: string): AppShellNavId {
+  if (pathname.startsWith('/exercises')) return 'exercises'
+  if (pathname.startsWith('/routines')) return 'routines'
+  return 'clients'
+}
+
 function AuthenticatedLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
   const displayName = user?.fullName ?? user?.email?.split('@')[0] ?? 'Entrenador'
 
   return (
     <AppShell
-      onNavigateToClients={() => navigate('/clients')}
+      activeId={navIdFromPath(location.pathname)}
+      onNavigate={(id) => {
+        if (id === 'clients') navigate('/clients')
+        if (id === 'exercises') navigate('/exercises')
+        // Rutinas (W5) aún no implementado
+      }}
       user={{ name: displayName, email: user?.email ?? '' }}
       onSignOut={() => {
         void logout().then(() => navigate('/login', { replace: true }))
@@ -58,6 +71,7 @@ export default function App() {
             <Route element={<AuthenticatedLayout />}>
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/clients/:clientId" element={<ClientDetailRoute />} />
+              <Route path="/exercises" element={<ExercisesPage />} />
             </Route>
           </Route>
 
