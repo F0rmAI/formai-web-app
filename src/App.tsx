@@ -10,7 +10,7 @@ import { GuestOnly, RequireAuth } from '@/components/auth/RequireAuth'
 import { AppShell, type AppShellNavId } from '@/components/layout'
 import { AuthProvider } from '@/context/AuthProvider'
 import { useAuth } from '@/context/useAuth'
-import { ClientDetailPage } from '@/pages/ClientDetailPage'
+import { ClientDetailPage, type ClientDetailTab } from '@/pages/ClientDetailPage'
 import { ClientsPage } from '@/pages/ClientsPage'
 import { ClientWebGatePage } from '@/pages/ClientWebGatePage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
@@ -52,13 +52,20 @@ function AuthenticatedLayout() {
   )
 }
 
-function ClientDetailRoute() {
-  const { clientId } = useParams<{ clientId: string }>()
+function ClientDetailRoute({ tab = 'ficha' }: { tab?: ClientDetailTab }) {
+  const { clientId, sessionId } = useParams<{ clientId: string; sessionId?: string }>()
   const navigate = useNavigate()
 
   if (!clientId) return <Navigate to="/clients" replace />
 
-  return <ClientDetailPage clientId={clientId} onBack={() => navigate('/clients')} />
+  return (
+    <ClientDetailPage
+      clientId={clientId}
+      tab={tab}
+      sessionId={sessionId}
+      onBack={() => navigate('/clients')}
+    />
+  )
 }
 
 function RoutineEditorRoute() {
@@ -90,7 +97,13 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route element={<AuthenticatedLayout />}>
               <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/clients/:clientId" element={<ClientDetailRoute />} />
+              <Route path="/clients/:clientId" element={<ClientDetailRoute tab="ficha" />} />
+              <Route path="/clients/:clientId/workouts" element={<ClientDetailRoute tab="entrenamientos" />} />
+              <Route
+                path="/clients/:clientId/workouts/:sessionId"
+                element={<ClientDetailRoute tab="entrenamientos" />}
+              />
+              <Route path="/clients/:clientId/progress" element={<ClientDetailRoute tab="progreso" />} />
               <Route path="/exercises" element={<ExercisesPage />} />
               <Route path="/routines" element={<RoutinesPage />} />
               <Route path="/routines/new" element={<RoutineEditorPage />} />

@@ -14,6 +14,8 @@ llamadas HTTP a funciones tipadas que consumen los hooks.
 | `exercises.contract.ts` | Contrato estable y errores del catálogo de ejercicios. |
 | `exercises.http.ts` | Adaptador HTTP contra `formai-api` (`/v1/exercises`). |
 | `exercises.service.ts` | Composición HTTP del catálogo de ejercicios. |
+| `workouts.contract.ts` | Contrato de seguimiento (historial, series, cierre, progreso). |
+| `workouts.service.ts` | Composición HTTP contra formai-api (trainer). |
 
 ## Reglas
 
