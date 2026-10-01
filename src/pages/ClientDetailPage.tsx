@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { EditBodyProfileModal } from '@/components/clients'
 import { PageHeader } from '@/components/layout'
-import { Badge, Button, Card, EmptyState, Icon, TabItem, Text } from '@/components/ui'
+import { Badge, Button, Card, Dialog, EmptyState, Icon, TabItem, Text, Toast } from '@/components/ui'
 import { useClientDetail } from '@/hooks/useClientDetail'
 
 export interface ClientDetailPageProps {
@@ -13,9 +14,23 @@ function formatWeight(value: number) {
   return `${value.toFixed(1).replace('.', ',')} kg`
 }
 
+function statusSubtitle(client: { status: string; email: string; activeSince: string }) {
+  if (client.status === 'ACTIVE' && client.activeSince) {
+    return `${client.email} · Activo desde el ${client.activeSince}`
+  }
+  if (client.status === 'INACTIVE') {
+    return `${client.email} · Inactivo`
+  }
+  return client.email
+}
+
 export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
-  const { client, isLoading, error, updateBodyProfile, refetch } = useClientDetail(clientId)
+  const navigate = useNavigate()
+  const { client, isLoading, error, updateBodyProfile, deactivate, refetch } = useClientDetail(clientId)
   const [editOpen, setEditOpen] = useState(false)
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
+  const [isDeactivating, setIsDeactivating] = useState(false)
+  const [deactivateError, setDeactivateError] = useState<string>()
 
   if (isLoading) {
     return (
@@ -38,15 +53,39 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
     )
   }
 
+  const handleDeactivate = async () => {
+    setIsDeactivating(true)
+    setDeactivateError(undefined)
+    try {
+      await deactivate()
+      setConfirmDeactivate(false)
+      navigate('/clients', { replace: true, state: { toast: `${client.fullName} fue desactivado` } })
+    } catch {
+      setDeactivateError('No pudimos desactivar a este cliente. Inténtalo de nuevo.')
+    } finally {
+      setIsDeactivating(false)
+    }
+  }
+
   return (
     <>
       <PageHeader
         breadcrumb={`Clientes / ${client.fullName}`}
         title={client.fullName}
-        subtitle={`${client.email} · Activo desde el ${client.activeSince}`}
+        subtitle={statusSubtitle(client)}
         actions={
           <>
-            <Button label="Desactivar" icon="person_off" variant="secondary" />
+            {client.status === 'ACTIVE' && (
+              <Button
+                label="Desactivar"
+                icon="person_off"
+                variant="secondary"
+                onClick={() => {
+                  setDeactivateError(undefined)
+                  setConfirmDeactivate(true)
+                }}
+              />
+            )}
             <Button label="Asignar rutina" icon="event_available" />
           </>
         }
@@ -134,6 +173,25 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
           onClose={() => setEditOpen(false)}
           onSave={updateBodyProfile}
         />
+      )}
+      <Dialog
+        open={confirmDeactivate}
+        tone="danger"
+        icon="person_off"
+        title={`¿Desactivar a ${client.fullName}?`}
+        description="No podrá iniciar sesión y su rutina vigente se cerrará. Su historial se conserva."
+        confirmLabel={isDeactivating ? 'Desactivando…' : 'Desactivar'}
+        onCancel={() => {
+          if (!isDeactivating) setConfirmDeactivate(false)
+        }}
+        onConfirm={() => {
+          if (!isDeactivating) void handleDeactivate()
+        }}
+      />
+      {deactivateError && (
+        <div className="fixed bottom-xl left-1/2 z-50 w-[min(100%-2rem,420px)] -translate-x-1/2">
+          <Toast message={deactivateError} tone="error" />
+        </div>
       )}
     </>
   )

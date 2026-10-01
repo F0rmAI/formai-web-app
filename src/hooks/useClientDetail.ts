@@ -41,5 +41,11 @@ export function useClientDetail(clientId: string) {
     setClient(updatedClient)
   }, [clientId])
 
-  return { client, isLoading, error, updateBodyProfile, refetch: loadClient }
+  const deactivate = useCallback(async () => {
+    const updatedClient = await clientsService.deactivate(clientId)
+    setClient(updatedClient)
+    return updatedClient
+  }, [clientId])
+
+  return { client, isLoading, error, updateBodyProfile, deactivate, refetch: loadClient }
 }
