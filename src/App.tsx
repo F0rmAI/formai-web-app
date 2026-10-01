@@ -1,38 +1,70 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { GuestOnly, RequireAuth } from '@/components/auth/RequireAuth'
 import { AppShell } from '@/components/layout'
+import { AuthProvider } from '@/context/AuthProvider'
+import { useAuth } from '@/context/useAuth'
 import { ClientDetailPage } from '@/pages/ClientDetailPage'
 import { ClientsPage } from '@/pages/ClientsPage'
+import { ClientWebGatePage } from '@/pages/ClientWebGatePage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { ForgotPasswordSentPage } from '@/pages/ForgotPasswordSentPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 
-export default function App() {
-  const clientIdFromPath = () => {
-    const match = window.location.pathname.match(/^\/clients\/([^/]+)$/)
-    return match?.[1]
-  }
-  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(clientIdFromPath)
-
-  useEffect(() => {
-    const onPopState = () => setSelectedClientId(clientIdFromPath())
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [])
-
-  const showClients = () => {
-    window.history.pushState(null, '', '/clients')
-    setSelectedClientId(undefined)
-  }
-
-  const showClient = (clientId: string) => {
-    window.history.pushState(null, '', `/clients/${clientId}`)
-    setSelectedClientId(clientId)
-  }
+function AuthenticatedLayout() {
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const displayName = user?.fullName ?? user?.email?.split('@')[0] ?? 'Entrenador'
 
   return (
-    <AppShell onNavigateToClients={showClients}>
-      {selectedClientId ? (
-        <ClientDetailPage clientId={selectedClientId} onBack={showClients} />
-      ) : (
-        <ClientsPage onOpenClient={showClient} />
-      )}
+    <AppShell
+      onNavigateToClients={() => navigate('/clients')}
+      user={{ name: displayName, email: user?.email ?? '' }}
+      onSignOut={() => {
+        void logout().then(() => navigate('/login', { replace: true }))
+      }}
+    >
+      <Outlet />
     </AppShell>
+  )
+}
+
+function ClientDetailRoute() {
+  const { clientId } = useParams<{ clientId: string }>()
+  const navigate = useNavigate()
+
+  if (!clientId) return <Navigate to="/clients" replace />
+
+  return <ClientDetailPage clientId={clientId} onBack={() => navigate('/clients')} />
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<GuestOnly />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/forgot-password/sent" element={<ForgotPasswordSentPage />} />
+            <Route path="/access-app" element={<ClientWebGatePage />} />
+          </Route>
+
+          <Route path="/password-reset" element={<ResetPasswordPage />} />
+
+          <Route element={<RequireAuth />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailRoute />} />
+            </Route>
+          </Route>
+
+          <Route path="/" element={<Navigate to="/clients" replace />} />
+          <Route path="*" element={<Navigate to="/clients" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }

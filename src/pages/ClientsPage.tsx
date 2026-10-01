@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ActivationCodeModal,
   ClientFilters,
@@ -8,14 +9,16 @@ import {
 } from '@/components/clients'
 import { PageHeader } from '@/components/layout'
 import { Button, Callout, Card, EmptyState, Text, Toast } from '@/components/ui'
+import { useEphemeralToast } from '@/hooks/useEphemeralToast'
 import { useClients } from '@/hooks/useClients'
 import type { ActivationCode, ClientSummary } from '@/types/client'
 
-export interface ClientsPageProps {
-  onOpenClient: (clientId: string) => void
-}
+export function ClientsPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const state = location.state as { toast?: string } | null
+  const toastFromAuth = useEphemeralToast(state?.toast)
 
-export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const {
     clients,
     query,
@@ -36,6 +39,12 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [toast, setToast] = useState<string>()
   const hasFilters = Boolean(query) || status !== 'ALL'
 
+  useEffect(() => {
+    if (state?.toast) {
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [state?.toast, navigate, location.pathname])
+
   const showActivation = (code: ActivationCode, regenerated: boolean) => {
     setRegisterOpen(false)
     setClientToRegenerate(null)
@@ -51,6 +60,8 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
       window.setTimeout(() => setToast(undefined), 3000)
     }
   }
+
+  const visibleToast = toast ?? toastFromAuth
 
   return (
     <>
@@ -86,7 +97,11 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         )}
 
         {!isLoading && !error && clients.length > 0 && (
-          <ClientsTable clients={clients} onOpenClient={onOpenClient} onRegenerateCode={setClientToRegenerate} />
+          <ClientsTable
+            clients={clients}
+            onOpenClient={(clientId) => navigate(`/clients/${clientId}`)}
+            onRegenerateCode={setClientToRegenerate}
+          />
         )}
 
         {!isLoading && !error && clients.length === 0 && !hasFilters && (
@@ -127,7 +142,9 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         onRegenerated={(code) => showActivation(code, true)}
       />
       <ActivationCodeModal activation={activation} regenerated={activationWasRegenerated} onClose={closeActivation} />
-      {toast && <Toast message={toast} tone="success" className="fixed inset-x-xl bottom-xl sm:right-10 sm:left-auto sm:bottom-8" />}
+      {visibleToast && (
+        <Toast message={visibleToast} tone="success" className="fixed inset-x-xl bottom-xl sm:right-10 sm:left-auto sm:bottom-8" />
+      )}
     </>
   )
 }

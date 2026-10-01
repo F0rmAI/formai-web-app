@@ -1,5 +1,13 @@
 import { API_URL } from './config'
 
+function problemDetailMessage(body: unknown, fallback: string): string {
+  if (body && typeof body === 'object' && 'detail' in body) {
+    const detail = (body as { detail: unknown }).detail
+    if (typeof detail === 'string' && detail.length > 0) return detail
+  }
+  return fallback
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly body: unknown
@@ -18,9 +26,22 @@ interface RequestOptions {
   body?: unknown
   headers?: Record<string, string>
   signal?: AbortSignal
+  /** Si es true, un 401 no dispara onUnauthorized (rutas públicas de auth). */
+  skipUnauthorizedHandler?: boolean
 }
 
-async function request<T>(method: HttpMethod, path: string, { body, headers, signal }: RequestOptions = {}) {
+type UnauthorizedHandler = () => void
+
+let onUnauthorized: UnauthorizedHandler | null = null
+
+/** Registra el callback global para sesiones expiradas (montado desde AuthProvider). */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  onUnauthorized = handler
+}
+
+async function request<T>(method: HttpMethod, path: string, options: RequestOptions = {}) {
+  const { body, headers, signal, skipUnauthorizedHandler } = options
+
   const response = await fetch(`${API_URL}${path}`, {
     method,
     signal,
@@ -37,7 +58,14 @@ async function request<T>(method: HttpMethod, path: string, { body, headers, sig
   const data: unknown = isJson ? await response.json() : undefined
 
   if (!response.ok) {
-    throw new ApiError(response.status, `${method} ${path} → ${response.status}`, data)
+    if (response.status === 401 && !skipUnauthorizedHandler) {
+      onUnauthorized?.()
+    }
+    throw new ApiError(
+      response.status,
+      problemDetailMessage(data, `${method} ${path} → ${response.status}`),
+      data,
+    )
   }
 
   return data as T
@@ -46,9 +74,12 @@ async function request<T>(method: HttpMethod, path: string, { body, headers, sig
 /** Cliente HTTP único: todos los services llaman al backend a través de él. */
 export const apiClient = {
   get: <T>(path: string, options?: Omit<RequestOptions, 'body'>) => request<T>('GET', path, options),
-  post: <T>(path: string, body?: unknown, options?: RequestOptions) => request<T>('POST', path, { ...options, body }),
-  put: <T>(path: string, body?: unknown, options?: RequestOptions) => request<T>('PUT', path, { ...options, body }),
+  post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>('POST', path, { ...options, body }),
+  put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>('PUT', path, { ...options, body }),
   patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>('PATCH', path, { ...options, body }),
-  delete: <T>(path: string, options?: Omit<RequestOptions, 'body'>) => request<T>('DELETE', path, options),
+  delete: <T>(path: string, options?: Omit<RequestOptions, 'body'>) =>
+    request<T>('DELETE', path, options),
 }
