@@ -1,52 +1,72 @@
-import { useState, type FormEvent } from 'react'
-import { Button, Modal, TextField } from '@/components/ui'
-import { ClientsServiceError } from '@/services/clients.service'
-import type { ActivationCode, RegisterClientInput } from '@/types/client'
+/**
+ * Modal that registers a client.
+ *
+ * @author Melina
+ * @packageDocumentation
+ */
 
+import { useId, useState, type FormEvent } from 'react'
+import { Button, Modal, TextField } from '@/components/ui'
+import type { RegisterClientInput } from '@/types/client'
+
+/**
+ * Props accepted by {@link RegisterClientModal}.
+ */
 export interface RegisterClientModalProps {
-  open: boolean
+  /** Whether the registration is being sent. */
+  isSubmitting: boolean
+  /** Message of the failed registration, shown under the email field. */
+  error: string | null
+  /** Called with the name and the email when the user submits the form. */
+  onSubmit: (input: RegisterClientInput) => void
+  /** Called when the user cancels or dismisses the modal. */
   onClose: () => void
-  onRegister: (input: RegisterClientInput) => Promise<ActivationCode>
-  onRegistered: (code: ActivationCode) => void
 }
 
-export function RegisterClientModal({ open, onClose, onRegister, onRegistered }: RegisterClientModalProps) {
+/**
+ * Shows the form that registers a client and reports the data the user submits.
+ *
+ * @remarks
+ * Mount it only while it is open, so the form starts empty every time.
+ */
+export function RegisterClientModal({ isSubmitting, error, onSubmit, onClose }: RegisterClientModalProps) {
+  const formId = useId()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
-  const [emailError, setEmailError] = useState<string>()
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    setEmailError(undefined)
-    setIsSubmitting(true)
-    try {
-      onRegistered(await onRegister({ fullName: fullName.trim(), email: email.trim() }))
-    } catch (error) {
-      if (error instanceof ClientsServiceError && error.code === 'EMAIL_ALREADY_EXISTS') {
-        setEmailError(error.message)
-      } else {
-        setEmailError('No pudimos registrar al cliente. Inténtalo nuevamente.')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+    onSubmit({ fullName: fullName.trim(), email: email.trim() })
   }
 
   return (
     <Modal
-      open={open}
+      open
       onClose={onClose}
       title="Nuevo cliente"
       description="Registra sus datos. Generaremos un código de activación para que active su cuenta en la app."
       icon="person_add"
+      actions={
+        <>
+          <Button label="Cancelar" variant="secondary" size="md" onClick={onClose} />
+          <Button
+            label="Registrar y generar código"
+            size="md"
+            type="submit"
+            form={formId}
+            loading={isSubmitting}
+            disabled={!fullName.trim() || !email.trim()}
+          />
+        </>
+      }
     >
-      <form onSubmit={handleSubmit} className="mt-xl flex flex-col gap-xl">
+      <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-xl">
         <TextField
           label="Nombre completo"
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           leadingIcon="person"
+          autoComplete="off"
           autoFocus
           required
         />
@@ -56,21 +76,10 @@ export function RegisterClientModal({ open, onClose, onRegister, onRegistered }:
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           leadingIcon="mail"
-          error={emailError}
+          autoComplete="off"
+          error={error ?? undefined}
           required
         />
-        <div className="flex flex-col-reverse justify-end gap-md sm:flex-row">
-          <Button label="Cancelar" variant="secondary" size="md" onClick={onClose} className="w-full sm:w-auto" />
-          <Button
-            label="Registrar y generar código"
-            icon="key"
-            size="md"
-            type="submit"
-            loading={isSubmitting}
-            disabled={!fullName.trim() || !email.trim()}
-            className="w-full sm:w-auto"
-          />
-        </div>
       </form>
     </Modal>
   )

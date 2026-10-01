@@ -1,51 +1,54 @@
-import { Button, SelectField, TextField } from '@/components/ui'
+/**
+ * Search and status filter of the clients list.
+ *
+ * @author Melina
+ * @packageDocumentation
+ */
+
+import { FilterBar, FilterField } from '@/components/layout'
+import { SelectField, type SelectOption, TextField } from '@/components/ui'
 import type { ClientStatusFilter } from '@/types/client'
 
-const statusOptions = [
+/** Options of the status filter. */
+const statusOptions: SelectOption<ClientStatusFilter>[] = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ACTIVE', label: 'Activos' },
   { value: 'INVITED', label: 'Código enviado' },
   { value: 'INVITATION_EXPIRED', label: 'Código vencido' },
   { value: 'INACTIVE', label: 'Inactivos' },
-] satisfies { value: ClientStatusFilter; label: string }[]
+]
 
+/**
+ * Props accepted by {@link ClientFilters}.
+ */
 export interface ClientFiltersProps {
+  /** Text of the search field. */
   query: string
+  /** Selected status. */
   status: ClientStatusFilter
+  /** Called with the new search text. */
   onQueryChange: (value: string) => void
+  /** Called with the status the user selects. */
   onStatusChange: (value: ClientStatusFilter) => void
-  onClear: () => void
 }
 
-export function ClientFilters({ query, status, onQueryChange, onStatusChange, onClear }: ClientFiltersProps) {
-  const hasFilters = Boolean(query) || status !== 'ALL'
-
+/**
+ * Shows the search field and the status filter of the clients list, and reports their changes.
+ */
+export function ClientFilters({ query, status, onQueryChange, onStatusChange }: ClientFiltersProps) {
   return (
-    <div className="flex flex-col gap-xl">
-      <div className="grid grid-cols-1 items-end gap-xl sm:grid-cols-[minmax(0,1fr)_240px]">
+    <FilterBar>
+      <FilterField grow>
         <TextField
           label="Buscar por nombre"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           leadingIcon="search"
         />
-        <SelectField
-          label="Estado"
-          value={status}
-          options={statusOptions}
-          onChange={onStatusChange}
-        />
-      </div>
-      {hasFilters && (
-        <Button
-          label="Limpiar búsqueda y filtro"
-          icon="close"
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="self-start px-0"
-        />
-      )}
-    </div>
+      </FilterField>
+      <FilterField>
+        <SelectField label="Estado" value={status} options={statusOptions} onChange={onStatusChange} />
+      </FilterField>
+    </FilterBar>
   )
 }
