@@ -61,13 +61,32 @@ interface RequestOptions {
   skipUnauthorizedHandler?: boolean
 }
 
+/**
+ * Parses a response body that declares JSON but can be empty or malformed.
+ *
+ * @param text - Raw body of the response.
+ * @returns The parsed value, or `undefined` when there is nothing valid to parse.
+ */
+function parseJson(text: string): unknown {
+  if (!text) return undefined
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
 /** Callback run when a request is rejected because the session is no longer valid. */
 type UnauthorizedHandler = () => void
 
+/** Path that renews the session cookies with the refresh cookie. */
+const REFRESH_PATH = '/v1/authentication/refresh'
+
 let onUnauthorized: UnauthorizedHandler | null = null
+let refreshing: Promise<boolean> | null = null
 
 /**
- * Registers the callback run when the backend answers `401`.
+ * Registers the callback run when the session expired and could not be renewed.
  *
  * @param handler - Callback to run, or `null` to remove the current one.
  */
@@ -76,16 +95,36 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
 }
 
 /**
+ * Renews the session cookies. Concurrent callers share one request.
+ *
+ * @returns Whether the session was renewed.
+ */
+function refreshSession(): Promise<boolean> {
+  refreshing ??= fetch(`${API_URL}${REFRESH_PATH}`, { method: 'POST', credentials: 'include' })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
+}
+
+/**
  * Sends a JSON request to the backend and parses the response.
+ *
+ * @remarks
+ * When the access cookie expired (`401`), the session is renewed once and the request is sent
+ * again; if the renewal fails, the unauthorized handler runs.
  *
  * @typeParam T - Shape of the response body.
  * @param method - HTTP method.
  * @param path - Path appended to the base URL, starting with `/`.
  * @param options - Body, extra headers, abort signal and unauthorized handling.
+ * @param retried - Whether the request is already the retry after renewing the session.
  * @returns The parsed response body, or `undefined` when the response is not JSON.
  * @throws {@link ApiError} when the response status is not in the 2xx range.
  */
-async function request<T>(method: HttpMethod, path: string, options: RequestOptions = {}) {
+async function request<T>(method: HttpMethod, path: string, options: RequestOptions = {}, retried = false): Promise<T> {
   const { body, headers, signal, skipUnauthorizedHandler } = options
 
   const response = await fetch(`${API_URL}${path}`, {
@@ -100,18 +139,16 @@ async function request<T>(method: HttpMethod, path: string, options: RequestOpti
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  const isJson = response.headers.get('content-type')?.includes('application/json')
-  const data: unknown = isJson ? await response.json() : undefined
+  // Errors arrive as `application/problem+json`.
+  const isJson = /[/+]json/.test(response.headers.get('content-type') ?? '')
+  const data = isJson ? parseJson(await response.text()) : undefined
 
   if (!response.ok) {
     if (response.status === 401 && !skipUnauthorizedHandler) {
+      if (!retried && (await refreshSession())) return request<T>(method, path, options, true)
       onUnauthorized?.()
     }
-    throw new ApiError(
-      response.status,
-      problemDetailMessage(data, `${method} ${path} → ${response.status}`),
-      data,
-    )
+    throw new ApiError(response.status, problemDetailMessage(data, `${method} ${path} → ${response.status}`), data)
   }
 
   return data as T
