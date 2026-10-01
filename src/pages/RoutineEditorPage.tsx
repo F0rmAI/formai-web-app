@@ -1,201 +1,156 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  AddExerciseModal,
-  AssignRoutineModal,
-  DuplicateRoutineModal,
-  RoutineSessionTabs,
-  RoutineStatusBadge,
-  RoutineVersionsPanel,
-} from '@/components/routines'
+/**
+ * Page that creates or edits a routine.
+ *
+ * @author Johan Quiñones
+ * @packageDocumentation
+ */
+
+import { useNavigate, useParams } from 'react-router-dom'
+import { RoutineBasicsCard, RoutineSessionEditor } from '@/components/routines'
 import { PageHeader } from '@/components/layout'
-import { Button, Callout, Card, EmptyState, Text, TextField, Toast } from '@/components/ui'
+import { Button, Callout, Card, EmptyState, LoadingState, type SelectOption } from '@/components/ui'
 import { useRoutineEditor } from '@/hooks/useRoutineEditor'
-import type { Exercise } from '@/types/exercise'
-import { createEditorExercise } from '@/utils/routine-editor'
+import type { ToastLocationState } from '@/hooks/useToast'
+import { ROUTES } from '@/navigation/routes'
+import { formatCount } from '@/utils/format'
+import { hasEditorErrors, MAX_SESSIONS } from '@/utils/routine-editor'
 
-export interface RoutineEditorPageProps {
-  routineId?: string
-}
-
-export function RoutineEditorPage({ routineId }: RoutineEditorPageProps) {
+/** Renders the form of one routine; it is keyed by routine so its state never leaks to another. */
+function RoutineEditor({ routineId }: { routineId?: string }) {
   const navigate = useNavigate()
   const {
     routine,
-    editorState,
-    setEditorState,
-    isNew,
+    state,
+    errors,
+    exercises,
     isLoading,
+    loadError,
     isSaving,
-    error,
-    validationError,
-    setValidationError,
+    saveError,
+    setName,
+    setSessionCount,
+    updateSession,
+    updateExercise,
+    addExercise,
+    removeExercise,
     save,
   } = useRoutineEditor(routineId)
 
-  const [activeSessionId, setActiveSessionId] = useState('')
-  const [addExerciseSessionId, setAddExerciseSessionId] = useState<string | null>(null)
-  const [duplicateOpen, setDuplicateOpen] = useState(false)
-  const [assignOpen, setAssignOpen] = useState(false)
-  const [versionsOpen, setVersionsOpen] = useState(false)
-  const [toast, setToast] = useState<string>()
-
-  const resolvedActiveSessionId = activeSessionId || editorState.sessions[0]?.localId || ''
-
-  const showToast = (message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(undefined), 3000)
-  }
-
-  const handleSave = async () => {
-    setValidationError(null)
-    try {
-      const saved = await save()
-      if (isNew) {
-        navigate(`/routines/${saved.id}`, { replace: true, state: { toast: 'Rutina guardada.' } })
-        return
-      }
-      showToast(`Versión v${saved.currentVersion} guardada.`)
-    } catch {
-      // validationError is set in the hook
-    }
-  }
-
-  const handleAddExercise = (exercise: Exercise) => {
-    if (!addExerciseSessionId) return
-    setEditorState({
-      ...editorState,
-      sessions: editorState.sessions.map((session) =>
-        session.localId === addExerciseSessionId
-          ? {
-              ...session,
-              exercises: [...session.exercises, createEditorExercise(exercise.id, exercise.name)],
-            }
-          : session,
-      ),
-    })
-    setAddExerciseSessionId(null)
-  }
-
-  const activeSession = editorState.sessions.find((session) => session.localId === addExerciseSessionId)
-  const excludedExerciseIds = activeSession?.exercises.map((exercise) => exercise.exerciseId) ?? []
-
-  if (isLoading) {
+  if (!state) {
+    if (isLoading) return <LoadingState label="Cargando rutina…" />
     return (
-      <Card className="flex min-h-[320px] items-center justify-center">
-        <Text tone="muted">Cargando rutina…</Text>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className="flex min-h-[320px] items-center justify-center">
+      <Card>
         <EmptyState
           title="No pudimos abrir esta rutina"
-          description={error}
+          description={loadError ?? 'La rutina solicitada no está disponible.'}
           icon="error"
-          action={{ label: 'Volver a rutinas', onClick: () => navigate('/routines') }}
+          action={{ label: 'Volver a rutinas', icon: 'arrow_back', onClick: () => navigate(ROUTES.routines) }}
         />
       </Card>
     )
   }
 
-  const pageTitle = isNew ? 'Nueva rutina' : editorState.name || 'Editar rutina'
+  const handleSave = async () => {
+    const result = await save()
+    if (!result.ok) return
+    const state: ToastLocationState = {
+      toast: routine ? `Cambios guardados · versión ${result.value.currentVersion}` : 'Rutina guardada como borrador',
+    }
+    navigate(ROUTES.routines, { state })
+  }
+
+  // A routine can still prescribe an archived exercise: it stays available in its own form.
+  const exerciseOptions: SelectOption<string>[] = [
+    ...exercises.map((exercise) => ({ value: exercise.id, label: exercise.name })),
+    ...(routine?.sessions ?? [])
+      .flatMap((session) => session.exercises)
+      .filter((prescribed) => !exercises.some((exercise) => exercise.id === prescribed.exerciseId))
+      .map((prescribed) => ({ value: prescribed.exerciseId, label: prescribed.exerciseName })),
+  ].filter((option, index, all) => all.findIndex((other) => other.value === option.value) === index)
+
+  const clients = routine?.assignedClients.length ?? 0
+  const subtitle = routine
+    ? `${clients > 0 ? `Asignada a ${formatCount(clients, 'cliente', 'clientes')}` : 'Sin clientes asignados'} · versión ${routine.currentVersion}`
+    : 'Define sesiones y ejercicios con su prescripción.'
 
   return (
     <>
       <PageHeader
-        breadcrumb={isNew ? 'Inicio / Rutinas / Nueva' : 'Inicio / Rutinas / Editar'}
-        title={pageTitle}
-        subtitle={isNew ? 'Arma sesiones y prescribe ejercicios para tus clientes.' : `Versión v${routine?.currentVersion ?? 1}`}
+        breadcrumb={`Rutinas / ${routine ? routine.name : 'Nueva rutina'}`}
+        title={routine ? 'Editar rutina' : 'Nueva rutina'}
+        subtitle={subtitle}
         actions={
-          <div className="flex flex-wrap items-center gap-md">
-            {!isNew && routine && <RoutineStatusBadge status={routine.status} />}
-            {!isNew && (
-              <Button label="Historial" icon="history" variant="secondary" onClick={() => setVersionsOpen(true)} />
-            )}
-            {!isNew && (
-              <Button label="Duplicar" icon="content_copy" variant="secondary" onClick={() => setDuplicateOpen(true)} />
-            )}
-            {!isNew && (
-              <Button label="Asignar" icon="person_add" variant="secondary" onClick={() => setAssignOpen(true)} />
-            )}
-            <Button label="Guardar borrador" icon="save" loading={isSaving} onClick={() => void handleSave()} />
-          </div>
+          <>
+            <Button label="Cancelar" variant="secondary" size="md" onClick={() => navigate(ROUTES.routines)} />
+            <Button
+              label={routine ? 'Guardar cambios' : 'Guardar borrador'}
+              icon="save"
+              size="md"
+              loading={isSaving}
+              onClick={() => void handleSave()}
+            />
+          </>
         }
       />
 
       <div className="mt-2xl flex flex-col gap-2xl">
-        <Button
-          label="Volver a rutinas"
-          icon="arrow_back"
-          variant="ghost"
-          onClick={() => navigate('/routines')}
-          className="w-fit"
-        />
-
-        {validationError && (
-          <Callout title="Revisa la rutina" description={validationError} tone="warning" />
+        {hasEditorErrors(errors) && (
+          <Callout
+            tone="warning"
+            icon="error"
+            title="No pudimos guardar la rutina"
+            description="Revisa los campos marcados: las series y repeticiones deben ser mayores que 0."
+          />
+        )}
+        {saveError && <Callout tone="warning" icon="error" title="No pudimos guardar la rutina" description={saveError} />}
+        {routine && (
+          <Callout
+            icon="info"
+            title={`Se creará la versión ${routine.currentVersion + 1}`}
+            description={
+              clients > 0
+                ? 'Tus clientes verán el cambio en su próxima sincronización. Los entrenamientos ya registrados no cambian.'
+                : 'La versión actual se conserva en el historial.'
+            }
+          />
         )}
 
-        <Card className="flex flex-col gap-2xl p-xl sm:p-2xl">
-          <TextField
-            label="Nombre de la rutina"
-            value={editorState.name}
-            onChange={(event) => setEditorState({ ...editorState, name: event.target.value })}
-            placeholder="Ej. Fuerza 12 semanas"
-          />
+        <RoutineBasicsCard
+          name={state.name}
+          nameError={errors.name}
+          sessionCount={state.sessions.length}
+          maxSessions={MAX_SESSIONS}
+          onNameChange={setName}
+          onSessionCountChange={setSessionCount}
+        />
 
-          <RoutineSessionTabs
-            editorState={editorState}
-            activeSessionId={resolvedActiveSessionId}
-            onActiveSessionChange={setActiveSessionId}
-            onChange={setEditorState}
-            onAddExercise={setAddExerciseSessionId}
+        {state.sessions.map((session, index) => (
+          <RoutineSessionEditor
+            key={session.localId}
+            position={index + 1}
+            session={session}
+            exerciseOptions={exerciseOptions}
+            errors={errors.fields}
+            onLabelChange={(label) => updateSession(session.localId, (current) => ({ ...current, label }))}
+            onExerciseChange={(exerciseLocalId, patch) => updateExercise(session.localId, exerciseLocalId, patch)}
+            onAddExercise={() => addExercise(session.localId)}
+            onRemoveExercise={(exerciseLocalId) => removeExercise(session.localId, exerciseLocalId)}
           />
-        </Card>
+        ))}
       </div>
-
-      <AddExerciseModal
-        open={Boolean(addExerciseSessionId)}
-        onClose={() => setAddExerciseSessionId(null)}
-        onSelect={handleAddExercise}
-        excludedExerciseIds={excludedExerciseIds}
-      />
-
-      {routine && (
-        <>
-          <DuplicateRoutineModal
-            routine={duplicateOpen ? routine : null}
-            onClose={() => setDuplicateOpen(false)}
-            onDuplicated={(duplicated) => {
-              setDuplicateOpen(false)
-              navigate(`/routines/${duplicated.id}`)
-            }}
-          />
-
-          <AssignRoutineModal
-            routine={assignOpen ? routine : null}
-            onClose={() => setAssignOpen(false)}
-            onAssigned={(routineName, count) => {
-              setAssignOpen(false)
-              showToast(`“${routineName}” se asignó a ${count} cliente${count === 1 ? '' : 's'}.`)
-            }}
-          />
-
-          <RoutineVersionsPanel
-            routineId={routine.id}
-            routineName={routine.name}
-            open={versionsOpen}
-            onClose={() => setVersionsOpen(false)}
-          />
-        </>
-      )}
-
-      {toast && (
-        <Toast message={toast} tone="success" className="fixed inset-x-xl bottom-xl sm:right-10 sm:left-auto sm:bottom-8" />
-      )}
     </>
   )
+}
+
+/**
+ * Shows the form that creates a routine or edits an existing one, using {@link useRoutineEditor}
+ * for the form state, the exercise catalog and the save action.
+ *
+ * @remarks
+ * Requires an authenticated session; the route guard redirects otherwise. Without a `routineId`
+ * route parameter the page creates a routine.
+ */
+export function RoutineEditorPage() {
+  const { routineId } = useParams()
+  return <RoutineEditor key={routineId ?? 'new'} routineId={routineId} />
 }

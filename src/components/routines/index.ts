@@ -1,9 +1,11 @@
-export { AddExerciseModal } from './AddExerciseModal'
-export { AssignRoutineModal } from './AssignRoutineModal'
-export { DuplicateRoutineModal } from './DuplicateRoutineModal'
-export { PrescribedExerciseRow } from './PrescribedExerciseRow'
-export { RoutineFilters } from './RoutineFilters'
-export { RoutineSessionTabs } from './RoutineSessionTabs'
-export { RoutineStatusBadge } from './RoutineStatusBadge'
-export { RoutinesTable } from './RoutinesTable'
-export { RoutineVersionsPanel } from './RoutineVersionsPanel'
+/**
+ * Public entry point of the routines feature components.
+ *
+ * @author Johan Quiñones
+ * @packageDocumentation
+ */
+
+export { RoutineBasicsCard, type RoutineBasicsCardProps } from './RoutineBasicsCard'
+export { RoutineSessionEditor, type RoutineSessionEditorProps } from './RoutineSessionEditor'
+export { RoutineStatusBadge, type RoutineStatusBadgeProps } from './RoutineStatusBadge'
+export { RoutinesTable, type RoutinesTableProps } from './RoutinesTable'
