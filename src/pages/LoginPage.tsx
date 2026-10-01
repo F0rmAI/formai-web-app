@@ -1,39 +1,43 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/auth/AuthLayout'
-import { Button, Text, TextField, Toast } from '@/components/ui'
-import { useEphemeralToast } from '@/hooks/useEphemeralToast'
+/**
+ * Sign-in page.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AuthLayout, ToastViewport } from '@/components/layout'
+import { Button, Text, TextField } from '@/components/ui'
 import { useLogin } from '@/hooks/useLogin'
+import { useToast } from '@/hooks/useToast'
+import { ROUTES } from '@/navigation/routes'
 
+/**
+ * Shows the sign-in form of the trainer, using {@link useLogin} for the form state and the action.
+ *
+ * @remarks
+ * Only reachable without a session; the route guard redirects a signed-in trainer to the clients page.
+ */
 export function LoginPage() {
-  const { fields, errors, loading, update, submit } = useLogin()
-  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
-  const state = location.state as { toast?: string } | null
-  const toastMessage = useEphemeralToast(state?.toast)
+  const { toast } = useToast()
+  const { fields, errors, isSubmitting, update, submit } = useLogin()
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
-  useEffect(() => {
-    if (state?.toast) {
-      navigate(location.pathname, { replace: true, state: {} })
-    }
-  }, [state?.toast, navigate, location.pathname])
-
-  function onSubmit(event: FormEvent) {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     void submit()
   }
 
   return (
     <AuthLayout>
-      <form className="flex w-full flex-col gap-xl" onSubmit={onSubmit} noValidate>
+      <form className="flex w-full flex-col gap-xl" onSubmit={handleSubmit} noValidate>
         <div className="flex flex-col gap-xs">
           <Text as="h1" variant="display">
             Bienvenida de nuevo
           </Text>
-          <Text variant="body-l" tone="secondary">
-            Ingresa a tu panel de entrenador.
-          </Text>
+          <Text tone="secondary">Ingresa a tu panel de entrenador.</Text>
         </div>
 
         <TextField
@@ -42,67 +46,50 @@ export function LoginPage() {
           autoComplete="email"
           leadingIcon="mail"
           value={fields.email}
-          onChange={(e) => update('email', e.target.value)}
+          onChange={(event) => update('email', event.target.value)}
           error={errors.email}
-          placeholder="tu@correo.com"
         />
-
         <TextField
           label="Contraseña"
-          type={showPassword ? 'text' : 'password'}
+          type={isPasswordVisible ? 'text' : 'password'}
           autoComplete="current-password"
           leadingIcon="lock"
-          trailingIcon={showPassword ? 'visibility_off' : 'visibility'}
-          trailingIconLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          onTrailingIconClick={() => setShowPassword((v) => !v)}
+          trailingIcon={isPasswordVisible ? 'visibility_off' : 'visibility'}
+          trailingIconLabel={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          onTrailingIconClick={() => setIsPasswordVisible((visible) => !visible)}
           value={fields.password}
-          onChange={(e) => update('password', e.target.value)}
+          onChange={(event) => update('password', event.target.value)}
           error={errors.password}
-          placeholder="••••••••••"
         />
 
-        {errors.form && (
-          <Text variant="body-m" tone="error">
-            {errors.form}
-          </Text>
-        )}
-
         <Button
-          type="button"
           label="¿Olvidaste tu contraseña?"
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => navigate('/forgot-password')}
+          onClick={() => navigate(ROUTES.forgotPassword)}
         />
-
-        <Button type="submit" label="Iniciar sesión" fullWidth loading={loading} />
+        <Button type="submit" label="Iniciar sesión" fullWidth loading={isSubmitting} />
 
         <div className="flex flex-col gap-xs">
           <Button
-            type="button"
             label="Crear una cuenta de entrenador"
             variant="ghost"
             size="md"
             fullWidth
-            onClick={() => navigate('/register')}
+            onClick={() => navigate(ROUTES.register)}
           />
           <Button
-            type="button"
             label="¿Eres cliente? Entra desde la app"
             variant="ghost"
             size="md"
             fullWidth
-            onClick={() => navigate('/access-app')}
+            onClick={() => navigate(ROUTES.clientGate)}
           />
         </div>
       </form>
 
-      {toastMessage && (
-        <div className="fixed right-2xl bottom-2xl z-50">
-          <Toast message={toastMessage} tone="success" />
-        </div>
-      )}
+      <ToastViewport message={toast?.message} tone={toast?.tone} />
     </AuthLayout>
   )
 }

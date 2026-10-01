@@ -1,69 +1,85 @@
+/**
+ * Hook of the new password form.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ROUTES } from '@/navigation/routes'
+import { ApiError } from '@/services/api-client'
 import { authService } from '@/services/auth.service'
-import { isApiError, passwordLengthError } from '@/utils/auth-errors'
+import { passwordError } from '@/utils/validation'
+import type { ToastLocationState } from './useToast'
 
-type ResetPhase = 'form' | 'expired'
-
+/** Values of the new password form. */
 interface ResetFields {
   password: string
   confirmPassword: string
 }
 
-interface ResetErrors {
-  password?: string
-  confirmPassword?: string
-  form?: string
-}
+/** Messages of the new password form, per field. */
+type ResetErrors = Partial<Record<keyof ResetFields, string>>
 
+/**
+ * Holds the new password form and saves the password with the token of the emailed link.
+ *
+ * @remarks
+ * On success it navigates to the sign-in page, which confirms the change. A missing, expired or
+ * used token sets `isLinkExpired`.
+ *
+ * @param token - Token carried by the emailed link, or `null` when the link has none.
+ * @returns The `fields` and their `errors`, the `isSubmitting` state, `isLinkExpired`, `update` to
+ * change a field and `submit` to send the form.
+ *
+ * @example
+ * ```tsx
+ * const { fields, errors, isLinkExpired, update, submit } = useResetPassword(token);
+ * ```
+ */
 export function useResetPassword(token: string | null) {
   const navigate = useNavigate()
   const [fields, setFields] = useState<ResetFields>({ password: '', confirmPassword: '' })
   const [errors, setErrors] = useState<ResetErrors>({})
-  const [loading, setLoading] = useState(false)
-  const [phase, setPhase] = useState<ResetPhase>(token ? 'form' : 'expired')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLinkExpired, setIsLinkExpired] = useState(!token)
 
-  function update<K extends keyof ResetFields>(key: K, value: ResetFields[K]) {
-    setFields((prev) => ({ ...prev, [key]: value }))
-    setErrors((prev) => ({ ...prev, [key]: undefined, form: undefined }))
+  function update(field: keyof ResetFields, value: string) {
+    setFields((previous) => ({ ...previous, [field]: value }))
+    setErrors((previous) => ({ ...previous, [field]: undefined }))
   }
 
   async function submit() {
-    if (!token) {
-      setPhase('expired')
+    if (!token) return
+
+    const invalid: ResetErrors = {
+      password: passwordError(fields.password),
+      confirmPassword: fields.password === fields.confirmPassword ? undefined : 'Las contraseñas no coinciden',
+    }
+    if (invalid.password || invalid.confirmPassword) {
+      setErrors(invalid)
       return
     }
 
-    const passwordError = passwordLengthError(fields.password)
-    const confirmError =
-      fields.password === fields.confirmPassword ? undefined : 'Las contraseñas no coinciden'
-    if (passwordError || confirmError) {
-      setErrors({ password: passwordError, confirmPassword: confirmError })
-      return
-    }
-
-    setLoading(true)
+    setIsSubmitting(true)
     setErrors({})
     try {
       await authService.resetPassword({ token, password: fields.password })
-      navigate('/login', { replace: true, state: { toast: 'Contraseña actualizada' } })
+      const state: ToastLocationState = { toast: 'Contraseña actualizada' }
+      navigate(ROUTES.login, { replace: true, state })
     } catch (error) {
-      if (isApiError(error) && error.status === 422) {
-        const detail = error.message.toLowerCase()
-        if (detail.includes('password') || detail.includes('8')) {
-          setErrors({ password: 'Al menos 8 caracteres' })
-        } else {
-          setPhase('expired')
-        }
-      } else if (isApiError(error)) {
-        setErrors({ form: error.message })
+      // The backend answers 422 both for a weak password and for a link that expired or was used.
+      // The password already passed the local rule, so a 422 here means the link is not valid.
+      if (error instanceof ApiError && [400, 404, 410, 422].includes(error.status)) {
+        setIsLinkExpired(true)
       } else {
-        setErrors({ form: 'No se pudo guardar la contraseña. Inténtalo de nuevo.' })
+        setErrors({ confirmPassword: 'No pudimos guardar la contraseña. Inténtalo de nuevo.' })
       }
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  return { fields, errors, loading, phase, update, submit }
+  return { fields, errors, isSubmitting, isLinkExpired, update, submit }
 }

@@ -1,84 +1,77 @@
+/**
+ * Sign-up page.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/auth/AuthLayout'
+import { AuthLayout } from '@/components/layout'
 import { Button, Text, TextField } from '@/components/ui'
 import { useRegister } from '@/hooks/useRegister'
+import { ROUTES } from '@/navigation/routes'
 
+/**
+ * Shows the form that creates a trainer account, using {@link useRegister} for the form state and
+ * the action.
+ *
+ * @remarks
+ * Only reachable without a session; the route guard redirects a signed-in trainer to the clients page.
+ */
 export function RegisterPage() {
-  const { fields, errors, loading, update, submit } = useRegister()
-  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+  const { fields, errors, isSubmitting, update, submit } = useRegister()
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
-  function onSubmit(event: FormEvent) {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     void submit()
   }
 
   return (
     <AuthLayout>
-      <form className="flex w-full flex-col gap-xl" onSubmit={onSubmit} noValidate>
+      <form className="flex w-full flex-col gap-xl" onSubmit={handleSubmit} noValidate>
         <div className="flex flex-col gap-xs">
           <Text as="h1" variant="display">
             Crea tu cuenta
           </Text>
-          <Text variant="body-l" tone="secondary">
-            Empieza a gestionar a tus clientes desde la web.
-          </Text>
+          <Text tone="secondary">Empieza a gestionar a tus clientes en minutos.</Text>
         </div>
 
         <TextField
           label="Nombre completo"
-          type="text"
           autoComplete="name"
           leadingIcon="person"
           value={fields.fullName}
-          onChange={(e) => update('fullName', e.target.value)}
+          onChange={(event) => update('fullName', event.target.value)}
           error={errors.fullName}
-          placeholder="Tu nombre"
         />
-
         <TextField
           label="Correo electrónico"
           type="email"
           autoComplete="email"
           leadingIcon="mail"
           value={fields.email}
-          onChange={(e) => update('email', e.target.value)}
+          onChange={(event) => update('email', event.target.value)}
           error={errors.email}
-          placeholder="tu@correo.com"
         />
-
         <TextField
           label="Contraseña"
-          type={showPassword ? 'text' : 'password'}
+          type={isPasswordVisible ? 'text' : 'password'}
           autoComplete="new-password"
           leadingIcon="lock"
-          trailingIcon={showPassword ? 'visibility_off' : 'visibility'}
-          trailingIconLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          onTrailingIconClick={() => setShowPassword((v) => !v)}
+          trailingIcon={isPasswordVisible ? 'visibility_off' : 'visibility'}
+          trailingIconLabel={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          onTrailingIconClick={() => setIsPasswordVisible((visible) => !visible)}
           value={fields.password}
-          onChange={(e) => update('password', e.target.value)}
+          onChange={(event) => update('password', event.target.value)}
           error={errors.password}
-          helper={errors.password ? undefined : 'Al menos 8 caracteres'}
-          placeholder="••••••••••"
+          helper="Mínimo 8 caracteres, con letras y números."
         />
 
-        {errors.form && (
-          <Text variant="body-m" tone="error">
-            {errors.form}
-          </Text>
-        )}
-
-        <Button type="submit" label="Crear cuenta" fullWidth loading={loading} />
-
-        <Button
-          type="button"
-          label="Ya tengo una cuenta"
-          variant="ghost"
-          size="md"
-          fullWidth
-          onClick={() => navigate('/login')}
-        />
+        <Button type="submit" label="Crear cuenta" fullWidth loading={isSubmitting} />
+        <Button label="Ya tengo una cuenta" variant="ghost" size="md" fullWidth onClick={() => navigate(ROUTES.login)} />
       </form>
     </AuthLayout>
   )

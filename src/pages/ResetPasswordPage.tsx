@@ -1,94 +1,91 @@
+/**
+ * New password page, opened from the emailed link.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 import { useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AuthLayout } from '@/components/auth/AuthLayout'
+import { AuthLayout } from '@/components/layout'
 import { Button, EmptyState, Text, TextField } from '@/components/ui'
+import type { ForgotPasswordLocationState } from '@/hooks/useForgotPassword'
 import { useResetPassword } from '@/hooks/useResetPassword'
+import { ROUTES } from '@/navigation/routes'
 
+/**
+ * Shows the form that sets a new password, or the notice that the link is no longer valid, using
+ * {@link useResetPassword} for the form state and the action.
+ *
+ * @remarks
+ * Reads the token from the `token` query parameter of the emailed link.
+ */
 export function ResetPasswordPage() {
-  const [params] = useSearchParams()
-  const token = params.get('token')
-  const { fields, errors, loading, phase, update, submit } = useResetPassword(token)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const { fields, errors, isSubmitting, isLinkExpired, update, submit } = useResetPassword(params.get('token'))
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false)
 
-  function onSubmit(event: FormEvent) {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     void submit()
   }
 
-  if (phase === 'expired') {
+  if (isLinkExpired) {
+    const state: ForgotPasswordLocationState = { renewal: true }
     return (
       <AuthLayout>
-        <div className="flex w-full flex-col gap-xl">
-          <EmptyState
-            icon="link_off"
-            title="Enlace vencido"
-            description="Este enlace ya no es válido. Pide uno nuevo para continuar."
-            action={{
-              label: 'Pedir nuevo enlace',
-              onClick: () => navigate('/forgot-password'),
-            }}
-          />
-          <Button
-            type="button"
-            label="Volver al inicio de sesión"
-            variant="ghost"
-            size="md"
-            fullWidth
-            onClick={() => navigate('/login')}
-          />
-        </div>
+        <EmptyState
+          icon="link_off"
+          title="Este enlace ya no es válido"
+          description="El enlace venció o ya se usó. Solicita uno nuevo para crear tu contraseña."
+          action={{
+            label: 'Solicitar un nuevo enlace',
+            icon: 'refresh',
+            onClick: () => navigate(ROUTES.forgotPassword, { state }),
+          }}
+        />
       </AuthLayout>
     )
   }
 
   return (
     <AuthLayout>
-      <form className="flex w-full flex-col gap-xl" onSubmit={onSubmit} noValidate>
+      <form className="flex w-full flex-col gap-xl" onSubmit={handleSubmit} noValidate>
         <div className="flex flex-col gap-xs">
           <Text as="h1" variant="display">
-            Nueva contraseña
+            Crea una nueva contraseña
           </Text>
-          <Text variant="body-l" tone="secondary">
-            Elige una contraseña segura para tu cuenta.
-          </Text>
+          <Text tone="secondary">Usa al menos 8 caracteres, con letras y números.</Text>
         </div>
 
         <TextField
           label="Nueva contraseña"
-          type={showPassword ? 'text' : 'password'}
+          type={isPasswordVisible ? 'text' : 'password'}
           autoComplete="new-password"
           leadingIcon="lock"
-          trailingIcon={showPassword ? 'visibility_off' : 'visibility'}
-          trailingIconLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          onTrailingIconClick={() => setShowPassword((v) => !v)}
+          trailingIcon={isPasswordVisible ? 'visibility_off' : 'visibility'}
+          trailingIconLabel={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          onTrailingIconClick={() => setIsPasswordVisible((visible) => !visible)}
           value={fields.password}
-          onChange={(e) => update('password', e.target.value)}
+          onChange={(event) => update('password', event.target.value)}
           error={errors.password}
-          helper={errors.password ? undefined : 'Al menos 8 caracteres'}
         />
-
         <TextField
           label="Confirmar contraseña"
-          type={showConfirm ? 'text' : 'password'}
+          type={isConfirmVisible ? 'text' : 'password'}
           autoComplete="new-password"
           leadingIcon="lock"
-          trailingIcon={showConfirm ? 'visibility_off' : 'visibility'}
-          trailingIconLabel={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          onTrailingIconClick={() => setShowConfirm((v) => !v)}
+          trailingIcon={isConfirmVisible ? 'visibility_off' : 'visibility'}
+          trailingIconLabel={isConfirmVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          onTrailingIconClick={() => setIsConfirmVisible((visible) => !visible)}
           value={fields.confirmPassword}
-          onChange={(e) => update('confirmPassword', e.target.value)}
+          onChange={(event) => update('confirmPassword', event.target.value)}
           error={errors.confirmPassword}
         />
 
-        {errors.form && (
-          <Text variant="body-m" tone="error">
-            {errors.form}
-          </Text>
-        )}
-
-        <Button type="submit" label="Guardar contraseña" fullWidth loading={loading} />
+        <Button type="submit" label="Guardar contraseña" fullWidth loading={isSubmitting} />
       </form>
     </AuthLayout>
   )

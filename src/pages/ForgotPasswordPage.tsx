@@ -1,28 +1,41 @@
+/**
+ * Password recovery page.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
+
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/auth/AuthLayout'
+import { AuthLayout } from '@/components/layout'
 import { Button, Text, TextField } from '@/components/ui'
 import { useForgotPassword } from '@/hooks/useForgotPassword'
+import { ROUTES } from '@/navigation/routes'
 
+/**
+ * Shows the form that asks for a link to set a new password, using {@link useForgotPassword} for
+ * the form state and the action.
+ *
+ * @remarks
+ * Only reachable without a session; the route guard redirects a signed-in trainer to the clients page.
+ */
 export function ForgotPasswordPage() {
-  const { email, error, loading, updateEmail, submit } = useForgotPassword()
   const navigate = useNavigate()
+  const { email, error, isSubmitting, updateEmail, submit } = useForgotPassword()
 
-  function onSubmit(event: FormEvent) {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     void submit()
   }
 
   return (
     <AuthLayout>
-      <form className="flex w-full flex-col gap-xl" onSubmit={onSubmit} noValidate>
+      <form className="flex w-full flex-col gap-xl" onSubmit={handleSubmit} noValidate>
         <div className="flex flex-col gap-xs">
           <Text as="h1" variant="display">
-            Recuperar contraseña
+            Recupera tu acceso
           </Text>
-          <Text variant="body-l" tone="secondary">
-            Te enviaremos un enlace a tu correo para crear una nueva.
-          </Text>
+          <Text tone="secondary">Te enviaremos un enlace para crear una nueva contraseña.</Text>
         </div>
 
         <TextField
@@ -31,20 +44,18 @@ export function ForgotPasswordPage() {
           autoComplete="email"
           leadingIcon="mail"
           value={email}
-          onChange={(e) => updateEmail(e.target.value)}
+          onChange={(event) => updateEmail(event.target.value)}
           error={error}
-          placeholder="tu@correo.com"
         />
 
-        <Button type="submit" label="Enviar enlace" fullWidth loading={loading} />
-
+        <Button type="submit" label="Enviar enlace" fullWidth loading={isSubmitting} />
         <Button
-          type="button"
           label="Volver al inicio de sesión"
+          icon="arrow_back"
           variant="ghost"
           size="md"
           fullWidth
-          onClick={() => navigate('/login')}
+          onClick={() => navigate(ROUTES.login)}
         />
       </form>
     </AuthLayout>

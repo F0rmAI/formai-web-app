@@ -1,13 +1,47 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { authService } from '@/services/auth.service'
-import { emailFormatError, isApiError } from '@/utils/auth-errors'
+/**
+ * Hook of the password recovery form.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
 
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ROUTES } from '@/navigation/routes'
+import { authService } from '@/services/auth.service'
+import { emailFormatError } from '@/utils/validation'
+import type { ToastLocationState } from './useToast'
+
+/**
+ * Navigation state that tells the recovery form it was opened from an expired link.
+ */
+export interface ForgotPasswordLocationState {
+  /** Whether the trainer is asking for a link again. */
+  renewal?: boolean
+}
+
+/**
+ * Holds the recovery form and asks the backend to email a link to set a new password.
+ *
+ * @remarks
+ * On success it navigates to the confirmation page; when the form was opened from an expired
+ * link, that page also says that a new link was sent.
+ *
+ * @returns The `email` typed and its `error`, the `isSubmitting` state, `updateEmail` to change
+ * the field and `submit` to send the form.
+ *
+ * @example
+ * ```tsx
+ * const { email, error, isSubmitting, updateEmail, submit } = useForgotPassword();
+ * ```
+ */
 export function useForgotPassword() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const isRenewal = Boolean((location.state as ForgotPasswordLocationState | null)?.renewal)
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string>()
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateEmail(value: string) {
     setEmail(value)
@@ -15,38 +49,24 @@ export function useForgotPassword() {
   }
 
   async function submit() {
-    const emailError = emailFormatError(email)
-    if (emailError) {
-      setError(emailError)
+    const invalid = emailFormatError(email)
+    if (invalid) {
+      setError(invalid)
       return
     }
 
-    setLoading(true)
+    setIsSubmitting(true)
     setError(undefined)
     try {
-      await authService.requestPasswordReset({ email: email.trim() })
-      navigate('/forgot-password/sent', { state: { email: email.trim() } })
-    } catch (err) {
-      setError(isApiError(err) ? err.message : 'No se pudo enviar el enlace. Inténtalo de nuevo.')
+      await authService.requestPasswordReset(email.trim())
+      const state: ToastLocationState = isRenewal ? { toast: 'Te enviamos un nuevo enlace' } : {}
+      navigate(ROUTES.forgotPasswordSent, { state })
+    } catch {
+      setError('No pudimos enviar el enlace. Inténtalo de nuevo.')
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  async function resend(targetEmail: string) {
-    setLoading(true)
-    try {
-      await authService.requestPasswordReset({ email: targetEmail })
-      navigate('/forgot-password/sent', {
-        replace: true,
-        state: { email: targetEmail, toast: 'Nuevo enlace enviado' },
-      })
-    } catch (err) {
-      setError(isApiError(err) ? err.message : 'No se pudo reenviar el enlace.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return { email, error, loading, updateEmail, submit, resend }
+  return { email, error, isSubmitting, updateEmail, submit }
 }
