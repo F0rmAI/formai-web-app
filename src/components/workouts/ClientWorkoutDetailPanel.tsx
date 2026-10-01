@@ -13,16 +13,7 @@ export function ClientWorkoutDetailPanel({
   sessionId,
   onBackToList,
 }: ClientWorkoutDetailPanelProps) {
-  const {
-    session,
-    isLoading,
-    error,
-    actionError,
-    isSaving,
-    recordSet,
-    finishSession,
-    refetch,
-  } = useWorkoutDetail(clientId, sessionId)
+  const { session, isLoading, error, refetch } = useWorkoutDetail(clientId, sessionId)
 
   if (isLoading) {
     return (
@@ -35,7 +26,7 @@ export function ClientWorkoutDetailPanel({
   if (error || !session) {
     return (
       <div className="flex flex-col gap-xl">
-        <Button label="Volver a entrenamientos" icon="arrow_back" variant="secondary" size="sm" onClick={onBackToList} />
+        <Button label="Volver" icon="arrow_back" variant="secondary" size="sm" onClick={onBackToList} />
         <EmptyState
           title="No pudimos abrir este entrenamiento"
           description={error ?? 'El entrenamiento solicitado no está disponible.'}
@@ -48,25 +39,10 @@ export function ClientWorkoutDetailPanel({
 
   return (
     <div className="flex flex-col gap-xl">
-      <Button
-        label="Volver a entrenamientos"
-        icon="arrow_back"
-        variant="secondary"
-        size="sm"
-        onClick={onBackToList}
-        className="self-start"
-      />
-      <WorkoutDetailView
-        session={session}
-        saving={isSaving}
-        actionError={actionError}
-        onRecordSet={async (input) => {
-          await recordSet(input)
-        }}
-        onFinish={async (confirmPartial) => {
-          await finishSession(confirmPartial)
-        }}
-      />
+      <div className="flex items-start justify-end">
+        <Button label="Volver" icon="arrow_back" variant="secondary" size="sm" onClick={onBackToList} />
+      </div>
+      <WorkoutDetailView session={session} />
     </div>
   )
 }
