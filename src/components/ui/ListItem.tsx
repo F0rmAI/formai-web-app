@@ -1,3 +1,10 @@
+/**
+ * List item primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { ButtonHTMLAttributes } from 'react'
 import type { IconName } from '@/types/ui'
 import { cn } from '@/utils/cn'
@@ -5,16 +12,34 @@ import { Badge } from './Badge'
 import { Icon } from './Icon'
 import { Text } from './Text'
 
+/**
+ * Props accepted by {@link ListItem}.
+ */
 export interface ListItemProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  /** Main text. */
   title: string
+  /** Secondary text shown below the title. */
   subtitle?: string
+  /** Icon shown in the leading tile. */
   icon?: IconName
-  /** Texto de un Badge primary a la derecha. */
+  /** Text of a primary badge shown at the end. */
   badge?: string
+  /**
+   * Shows a chevron to signal navigation.
+   *
+   * @defaultValue `true`
+   */
   showChevron?: boolean
 }
 
-/** Fila de lista navegable. */
+/**
+ * Renders a list row that the user can activate.
+ *
+ * @example
+ * ```tsx
+ * <ListItem icon="fitness_center" title="Day A" subtitle="4 exercises" badge="Today" onClick={open} />
+ * ```
+ */
 export function ListItem({
   title,
   subtitle,

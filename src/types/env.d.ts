@@ -1,7 +1,10 @@
 /// <reference types="vite/client" />
 
+/**
+ * Environment variables exposed to the client by Vite.
+ */
 interface ImportMetaEnv {
-  /** URL base del backend, p. ej. https://formai.app/api */
+  /** Base URL of the backend, such as `https://example.com/api`. */
   readonly VITE_API_URL?: string
 }
 

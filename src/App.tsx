@@ -1,3 +1,10 @@
+/**
+ * Root component of the app.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { GuestOnly, RequireAuth } from '@/components/auth/RequireAuth'
 import { AppShell } from '@/components/layout'
@@ -39,6 +46,9 @@ function ClientDetailRoute() {
   return <ClientDetailPage clientId={clientId} onBack={() => navigate('/clients')} />
 }
 
+/**
+ * Mounts the providers and the routes of the app.
+ */
 export default function App() {
   return (
     <AuthProvider>

@@ -1,8 +1,14 @@
+/**
+ * Text primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { ElementType, HTMLAttributes } from 'react'
 import type { TextTone, TextVariant } from '@/types/ui'
 import { cn } from '@/utils/cn'
 
-/** Tamaño/interlineado/tracking salen de tokens.css; el peso se fija aquí. */
 const textVariantClass: Record<TextVariant, string> = {
   'display-xl': 'text-display-xl font-extrabold',
   display: 'text-display font-extrabold',
@@ -33,13 +39,43 @@ const textToneClass: Record<TextTone, string> = {
   error: 'text-error',
 }
 
+/**
+ * Props accepted by {@link Text}.
+ */
 export interface TextProps extends HTMLAttributes<HTMLElement> {
+  /**
+   * Typography style.
+   *
+   * @defaultValue `'body-l'`
+   */
   variant?: TextVariant
+  /**
+   * Text color.
+   *
+   * @defaultValue `'default'`
+   */
   tone?: TextTone
-  /** Etiqueta HTML a renderizar (por defecto `p`). */
+  /**
+   * HTML element to render.
+   *
+   * @defaultValue `'p'`
+   */
   as?: ElementType
 }
 
+/**
+ * Renders text with a typography style and a color of the design system.
+ *
+ * @remarks
+ * Use it instead of a raw text element so font family, weight and color stay consistent.
+ *
+ * @example
+ * ```tsx
+ * <Text variant="title" tone="secondary">
+ *   Weekly summary
+ * </Text>
+ * ```
+ */
 export function Text({
   variant = 'body-l',
   tone = 'default',

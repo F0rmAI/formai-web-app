@@ -1,3 +1,10 @@
+/**
+ * Public entry point of the design system primitives.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 export { Avatar, type AvatarProps } from './Avatar'
 export { Badge, type BadgeProps } from './Badge'
 export { BrandLogo, type BrandLogoProps } from './BrandLogo'

@@ -1,9 +1,19 @@
+/**
+ * Starter page of the project base.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { Button, Text } from '@/components/ui'
 import { useCounter } from '@/hooks/useCounter'
 
 /**
- * Pantalla inicial de la base del proyecto: verifica que Tailwind, los tokens,
- * la tipografía, los íconos y los componentes del design system funcionan.
+ * Shows the product name and a counter, using {@link useCounter} for the state.
+ *
+ * @remarks
+ * Exists to verify that styles, tokens, fonts, icons and components work. Replace it when the
+ * first feature lands.
  */
 export function HomePage() {
   const { count, increment } = useCounter()

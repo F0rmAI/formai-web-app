@@ -1,32 +1,77 @@
+/**
+ * Sidebar layout component.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { useEffect, useId, useState } from 'react'
 import { Avatar, Badge, BrandLogo, IconButton, Text } from '@/components/ui'
 import type { IconName } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { SidebarItem } from './SidebarItem'
 
+/**
+ * Describes one navigation entry of the sidebar.
+ */
 export interface SidebarNavItem {
+  /** Identifier reported when the entry is selected. */
   id: string
+  /** Text of the entry. */
   label: string
+  /** Icon shown before the label. */
   icon: IconName
 }
 
+/**
+ * Describes a group of navigation entries.
+ */
 export interface SidebarSection {
+  /** Heading shown above the entries. */
   title?: string
+  /** Entries of the section. */
   items: SidebarNavItem[]
 }
 
+/**
+ * Props accepted by {@link Sidebar}.
+ */
 export interface SidebarProps {
-  /** Rol mostrado junto a la marca (p. ej. "Entrenador", "Administrador"). */
+  /** Role shown next to the brand, such as `Trainer`. */
   roleLabel: string
+  /** Navigation sections, in order. */
   sections: SidebarSection[]
+  /** Identifier of the current entry. */
   activeId: string
+  /** Called with the identifier of the entry the user selects. */
   onNavigate: (id: string) => void
+  /** Signed-in user shown in the footer. */
   user: { name: string; email: string; avatarUrl?: string }
+  /** Called when the user signs out; the action is hidden when omitted. */
   onSignOut?: () => void
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Sidebar web (264 px): marca + rol, secciones de navegación y usuario. */
+/**
+ * Renders the main navigation with the brand, the sections and the signed-in user.
+ *
+ * @remarks
+ * Mobile-first: a top bar with a menu button that opens the navigation as a drawer on small
+ * screens, and a 264 px side column from the `lg` breakpoint. The drawer closes with `Escape`,
+ * with the backdrop and after selecting an entry.
+ *
+ * @example
+ * ```tsx
+ * <Sidebar
+ *   roleLabel="Trainer"
+ *   sections={sections}
+ *   activeId="clients"
+ *   onNavigate={navigate}
+ *   user={user}
+ * />
+ * ```
+ */
 export function Sidebar({ roleLabel, sections, activeId, onNavigate, user, onSignOut, className }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileNavId = useId()

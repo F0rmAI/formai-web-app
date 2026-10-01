@@ -1,3 +1,10 @@
+/**
+ * Button primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { ButtonHTMLAttributes } from 'react'
 import type { ButtonSize, ButtonVariant, IconName, TextTone } from '@/types/ui'
 import { cn } from '@/utils/cn'
@@ -34,17 +41,51 @@ const iconColor: Record<ButtonVariant, string> = {
   danger: 'text-content-on-primary',
 }
 
+/**
+ * Props accepted by {@link Button}.
+ */
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  /** Text shown inside the button. */
   label: string
-  /** Por defecto `primary` (color principal del design system). */
+  /**
+   * Visual style.
+   *
+   * @defaultValue `'primary'`
+   */
   variant?: ButtonVariant
+  /**
+   * Height and padding preset.
+   *
+   * @defaultValue `'lg'`
+   */
   size?: ButtonSize
-  /** Ícono a la izquierda del texto. */
+  /** Icon rendered before the label. */
   icon?: IconName
+  /**
+   * Stretches the button to the width of its container.
+   *
+   * @defaultValue `false`
+   */
   fullWidth?: boolean
+  /**
+   * Shows a spinner and blocks interaction while an action is running.
+   *
+   * @defaultValue `false`
+   */
   loading?: boolean
 }
 
+/**
+ * Renders the main action control of the design system.
+ *
+ * @remarks
+ * Use one `primary` button per view; other actions use the `secondary` or `ghost` variants.
+ *
+ * @example
+ * ```tsx
+ * <Button label="Save" icon="check" onClick={handleSave} />
+ * ```
+ */
 export function Button({
   label,
   variant = 'primary',

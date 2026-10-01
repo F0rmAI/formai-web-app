@@ -1,3 +1,10 @@
+/**
+ * Badge primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { HTMLAttributes } from 'react'
 import type { BadgeTone, IconName, TextTone } from '@/types/ui'
 import { cn } from '@/utils/cn'
@@ -12,13 +19,30 @@ const toneClass: Record<BadgeTone, { container: string; icon: string; text: Text
   strong: { container: 'bg-secondary-text', icon: 'text-content-on-primary', text: 'on-primary' },
 }
 
+/**
+ * Props accepted by {@link Badge}.
+ */
 export interface BadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
+  /** Short text of the badge. */
   label: string
+  /**
+   * Color tone.
+   *
+   * @defaultValue `'primary'`
+   */
   tone?: BadgeTone
+  /** Icon rendered before the label. */
   icon?: IconName
 }
 
-/** Estado o dato corto. */
+/**
+ * Renders a short status or data label.
+ *
+ * @example
+ * ```tsx
+ * <Badge label="Completed" tone="tertiary" icon="check" />
+ * ```
+ */
 export function Badge({ label, tone = 'primary', icon, className, ...props }: BadgeProps) {
   const styles = toneClass[tone]
 

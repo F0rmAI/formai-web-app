@@ -1,3 +1,10 @@
+/**
+ * Avatar primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { useState } from 'react'
 import type { AvatarSize } from '@/types/ui'
 import { cn } from '@/utils/cn'
@@ -8,6 +15,7 @@ const sizeClass: Record<AvatarSize, string> = {
   md: 'size-12 border-2 border-surface-card shadow-raised',
 }
 
+/** Returns up to two uppercase initials of a name. */
 function initialsOf(name: string) {
   return name
     .split(/\s+/)
@@ -17,15 +25,32 @@ function initialsOf(name: string) {
     .join('')
 }
 
+/**
+ * Props accepted by {@link Avatar}.
+ */
 export interface AvatarProps {
-  /** Nombre de la persona: se usa como texto alternativo y para las iniciales. */
+  /** Name of the person, used as accessible text and for the initials. */
   name: string
+  /** URL of the picture; initials are shown when it is missing or fails to load. */
   src?: string
+  /**
+   * Diameter preset.
+   *
+   * @defaultValue `'sm'`
+   */
   size?: AvatarSize
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Foto de perfil circular. `sm` 32 px (header) o `md` 48 px (saludo). */
+/**
+ * Renders a circular profile picture with an initials fallback.
+ *
+ * @example
+ * ```tsx
+ * <Avatar name="Jane Doe" src={user.avatarUrl} />
+ * ```
+ */
 export function Avatar({ name, src, size = 'sm', className }: AvatarProps) {
   const [failedSrc, setFailedSrc] = useState<string>()
   const showImage = Boolean(src) && src !== failedSrc
