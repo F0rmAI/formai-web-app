@@ -1,152 +1,163 @@
-import { useState } from 'react'
-import {
-  ArchiveExerciseDialog,
-  CreateExerciseModal,
-  ExerciseFilters,
-  ExercisesTable,
-} from '@/components/exercises'
-import { PageHeader } from '@/components/layout'
-import { Button, Callout, Card, EmptyState, Text, Toast } from '@/components/ui'
-import { useExercises } from '@/hooks/useExercises'
-import type { Exercise } from '@/types/exercise'
+/**
+ * Exercises page.
+ *
+ * @author Christian Matos
+ * @packageDocumentation
+ */
 
+import { useState } from 'react'
+import { CreateExerciseModal, ExercisesTable } from '@/components/exercises'
+import { FilterBar, FilterField, PageHeader, ToastViewport } from '@/components/layout'
+import { Button, Card, Dialog, EmptyState, LoadingState, SelectField, type SelectOption } from '@/components/ui'
+import { useExercises } from '@/hooks/useExercises'
+import { useToast } from '@/hooks/useToast'
+import type { CreateExerciseInput, Exercise, ExerciseStatus } from '@/types/exercise'
+
+/** Options of the status filter. */
+const statusOptions: SelectOption<ExerciseStatus>[] = [
+  { value: 'ACTIVE', label: 'Activos' },
+  { value: 'ARCHIVED', label: 'Archivados' },
+]
+
+/**
+ * Shows the exercise catalog of the trainer by status, with the modal that adds an exercise and
+ * the dialog that archives one, using {@link useExercises} for data and actions.
+ *
+ * @remarks
+ * Requires an authenticated session; the route guard redirects otherwise.
+ */
 export function ExercisesPage() {
+  const { toast, showToast } = useToast()
   const {
     exercises,
     status,
+    setStatus,
     isLoading,
     error,
-    setStatus,
+    refetch,
     createExercise,
+    isCreating,
+    createError,
+    resetCreateError,
     archiveExercise,
     restoreExercise,
-    refetch,
+    isChangingStatus,
   } = useExercises()
-
-  const [createOpen, setCreateOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [exerciseToArchive, setExerciseToArchive] = useState<Exercise | null>(null)
-  const [isArchiving, setIsArchiving] = useState(false)
-  const [archiveError, setArchiveError] = useState<string>()
-  const [toast, setToast] = useState<string>()
+  const isArchivedView = status === 'ARCHIVED'
 
-  const showToast = (message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(undefined), 3000)
+  const openCreate = () => {
+    resetCreateError()
+    setIsCreateOpen(true)
   }
 
-  const handleArchive = async () => {
-    if (!exerciseToArchive) return
-    setIsArchiving(true)
-    setArchiveError(undefined)
-    try {
-      const name = exerciseToArchive.name
-      await archiveExercise(exerciseToArchive.id)
-      setExerciseToArchive(null)
-      showToast(`“${name}” se archivó.`)
-    } catch {
-      setArchiveError('No pudimos archivar este ejercicio. Inténtalo de nuevo.')
-    } finally {
-      setIsArchiving(false)
-    }
+  const handleCreate = async (input: CreateExerciseInput) => {
+    const result = await createExercise(input)
+    if (!result.ok) return
+    setIsCreateOpen(false)
+    setStatus('ACTIVE')
+    showToast('Ejercicio creado y visible en el catálogo')
+  }
+
+  const handleArchive = async (exercise: Exercise) => {
+    const result = await archiveExercise(exercise.id)
+    setExerciseToArchive(null)
+    if (result.ok) showToast('Ejercicio archivado · las rutinas no cambian')
+    else showToast(result.error.message, 'error')
   }
 
   const handleRestore = async (exercise: Exercise) => {
-    try {
-      await restoreExercise(exercise.id)
-      showToast(`“${exercise.name}” se restauró.`)
-    } catch {
-      showToast('No pudimos restaurar este ejercicio.')
-    }
+    const result = await restoreExercise(exercise.id)
+    if (result.ok) showToast('Ejercicio restaurado · vuelve a estar disponible')
+    else showToast(result.error.message, 'error')
   }
-
-  const emptyTitle = status === 'ARCHIVED' ? 'No hay ejercicios archivados' : 'Aún no tienes ejercicios'
-  const emptyDescription =
-    status === 'ARCHIVED'
-      ? 'Cuando archives un ejercicio, aparecerá aquí para que puedas restaurarlo.'
-      : 'Crea tu primer ejercicio para usarlo al armar rutinas.'
 
   return (
     <>
       <PageHeader
         breadcrumb="Inicio / Ejercicios"
         title="Ejercicios"
-        subtitle="Tu catálogo de ejercicios para armar rutinas."
-        actions={
-          <Button label="Nuevo ejercicio" icon="add" onClick={() => setCreateOpen(true)} />
+        subtitle={
+          isArchivedView
+            ? 'Ejercicios archivados: no aparecen al armar rutinas, pero conservan su historial.'
+            : 'Tu catálogo de ejercicios para armar rutinas.'
         }
+        actions={<Button label="Nuevo ejercicio" icon="add" size="md" onClick={openCreate} />}
       />
 
       <div className="mt-2xl flex flex-col gap-2xl">
-        {!isLoading && !error && (
-          <ExerciseFilters status={status} onStatusChange={setStatus} />
-        )}
+        <FilterBar>
+          <FilterField>
+            <SelectField label="Estado" value={status} options={statusOptions} onChange={setStatus} />
+          </FilterField>
+        </FilterBar>
+
+        {isLoading && exercises.length === 0 && <LoadingState label="Cargando ejercicios…" />}
 
         {error && (
-          <div className="flex flex-col items-stretch gap-xl sm:flex-row sm:items-end">
-            <Callout title="No pudimos cargar tus ejercicios" description={error} tone="warning" className="flex-1" />
-            <Button label="Reintentar" variant="secondary" onClick={() => void refetch()} className="w-full sm:w-auto" />
-          </div>
-        )}
-
-        {isLoading && (
-          <Card className="flex min-h-[224px] items-center justify-center">
-            <Text tone="muted">Cargando ejercicios…</Text>
+          <Card>
+            <EmptyState
+              title="No pudimos cargar tus ejercicios"
+              description={error}
+              icon="error"
+              action={{ label: 'Reintentar', icon: 'refresh', onClick: refetch }}
+            />
           </Card>
         )}
 
-        {!isLoading && !error && exercises.length > 0 && (
+        {!error && exercises.length > 0 && (
           <ExercisesTable
             exercises={exercises}
             onArchive={setExerciseToArchive}
-            onRestore={(exercise) => void handleRestore(exercise)}
+            onRestore={(exercise) => {
+              if (!isChangingStatus) void handleRestore(exercise)
+            }}
           />
         )}
 
         {!isLoading && !error && exercises.length === 0 && (
-          <Card className="flex min-h-[286px] items-center justify-center p-xl sm:p-2xl">
-            <EmptyState
-              title={emptyTitle}
-              description={emptyDescription}
-              icon={status === 'ARCHIVED' ? 'inventory_2' : 'exercise'}
-              action={
-                status === 'ACTIVE'
-                  ? { label: 'Nuevo ejercicio', icon: 'add', onClick: () => setCreateOpen(true) }
-                  : { label: 'Ver activos', icon: 'filter_list', onClick: () => setStatus('ACTIVE') }
-              }
-            />
+          <Card>
+            {isArchivedView ? (
+              <EmptyState
+                title="No hay ejercicios archivados"
+                description="Cuando archives un ejercicio, aparecerá aquí para que puedas restaurarlo."
+                icon="inventory_2"
+              />
+            ) : (
+              <EmptyState
+                title="Aún no tienes ejercicios"
+                description="Crea tu primer ejercicio para usarlo al armar rutinas."
+                icon="exercise"
+                action={{ label: 'Nuevo ejercicio', icon: 'add', onClick: openCreate }}
+              />
+            )}
           </Card>
         )}
       </div>
 
-      {createOpen && (
+      {isCreateOpen && (
         <CreateExerciseModal
-          open
-          onClose={() => setCreateOpen(false)}
-          onCreate={createExercise}
-          onCreated={(exercise) => {
-            setCreateOpen(false)
-            if (status !== 'ACTIVE') setStatus('ACTIVE')
-            showToast(`“${exercise.name}” se agregó al catálogo.`)
-          }}
+          isSubmitting={isCreating}
+          error={createError}
+          onSubmit={(input) => void handleCreate(input)}
+          onClose={() => setIsCreateOpen(false)}
         />
       )}
 
-      <ArchiveExerciseDialog
-        exercise={exerciseToArchive}
-        isArchiving={isArchiving}
-        onClose={() => {
-          setExerciseToArchive(null)
-          setArchiveError(undefined)
+      <Dialog
+        open={Boolean(exerciseToArchive)}
+        icon="inventory_2"
+        title="¿Archivar este ejercicio?"
+        description="Si el ejercicio se usa en alguna rutina no puede eliminarse, pero sí archivarse: dejará de aparecer al crear rutinas y las rutinas actuales no cambian. Lo verás en el filtro «Archivados»."
+        cancelLabel="Cerrar"
+        confirmLabel={isChangingStatus ? 'Archivando…' : 'Archivar ejercicio'}
+        onCancel={() => setExerciseToArchive(null)}
+        onConfirm={() => {
+          if (exerciseToArchive && !isChangingStatus) void handleArchive(exerciseToArchive)
         }}
-        onConfirm={() => void handleArchive()}
       />
-
-      {archiveError && (
-        <Toast message={archiveError} tone="error" className="fixed inset-x-xl bottom-xl sm:right-10 sm:left-auto sm:bottom-8" />
-      )}
-      {toast && !archiveError && (
-        <Toast message={toast} tone="success" className="fixed inset-x-xl bottom-xl sm:right-10 sm:left-auto sm:bottom-8" />
-      )}
+      <ToastViewport message={toast?.message} tone={toast?.tone} />
     </>
   )
 }
