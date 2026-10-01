@@ -11,6 +11,9 @@ llamadas HTTP a funciones tipadas que consumen los hooks.
 | `api-client.ts` | Cliente `fetch` único (`apiClient.get/post/put/patch/delete`) con JSON y `ApiError` tipado. |
 | `clients.contract.ts` | Contrato estable y errores de clientes, compartidos por cualquier adaptador. |
 | `clients.service.ts` | Punto de composición que selecciona el adaptador consumido por los hooks. |
+| `exercises.contract.ts` | Contrato estable y errores del catálogo de ejercicios. |
+| `exercises.http.ts` | Adaptador HTTP contra `formai-api` (`/v1/exercises`). |
+| `exercises.service.ts` | Composición HTTP del catálogo de ejercicios. |
 
 ## Reglas
 
