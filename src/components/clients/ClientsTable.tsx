@@ -18,7 +18,7 @@ export interface ClientsTableProps {
   clients: ClientSummary[]
   /** Called with the id of the client the user opens. */
   onOpenClient: (clientId: string) => void
-  /** Called with the client whose expired activation code the user wants to regenerate. */
+  /** Called with the invited client whose activation code the user wants to regenerate. */
   onRegenerateCode: (client: ClientSummary) => void
 }
 
@@ -54,7 +54,7 @@ export function ClientsTable({ clients, onOpenClient, onRegenerateCode }: Client
             <Text tone="secondary">{client.lastWorkout ?? '—'}</Text>
           </TableCell>
           <TableCell width="sm" actions>
-            {client.status === 'INVITATION_EXPIRED' && (
+            {(client.status === 'INVITED' || client.status === 'INVITATION_EXPIRED') && (
               <TableAction
                 icon="key"
                 label={`Regenerar código de ${client.fullName}`}
