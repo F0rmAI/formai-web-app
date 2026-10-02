@@ -1,40 +1,48 @@
 # MEMORY.md - FormAI Web App
 
-Inter-session project memory. This file contains about 50 lines: summarize or remove content that no longer adds value.
+Inter-session project memory. Keep this file concise (about 50 lines); remove stale details.
 
-## Current status (2026-10-01)
-- `develop` holds the MVP (TB1) of the trainer web: flows W1 access, W2 clients, W3 tracking, W4 exercises and W5 routines, every frame of the Figma page `formai_web_mockup` up to 5.12. `main` (5 local commits, not pushed) and every feature branch are merged into it.
-- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings. 170 tests pass; lint, typecheck and build are clean.
-- The five flows were run in a browser against a local `formai-api` on 2026-10-01 (accounts `qa.trainer.*@formai.test` were left in the local database).
-- Not built: W6 recognition report and W7 machine catalog (TB2, admin role). The backend has no endpoints for them, except `PUT /exercises/{id}/machine-link`.
+## Current status (2026-10-02)
+- `feature/api-alignment` is not merged. It aligns the trainer web MVP (TP) with `formai-api` `main`, spec 0.4.0.
+- Flows W1–W5 (access, clients, tracking, exercises, routines) ran in a browser against a local `formai-api` on 2026-10-02. Accounts `qa.trainer.*` and `qa.client.*` remain in the local database.
+- Frontend audit: 0 errors. W6 recognition report and W7 machine catalog, including the Administrator role, belong to TB2.
 
 ## Decisions (and why)
-- React 19.3.0 and Tailwind 4.3.3 pinned exactly: versions required by the project owner.
-- One file per resource in `services/` and a single `ServiceError`: the `contract/http/service` trio and `src/mocks` only existed to swap a mock adapter that no longer runs.
-- Backend error details are never shown: they are English and written for developers. Each service defines the Spanish message.
-- `useAsyncData` / `useAsyncAction` under every data hook: one place for cancellation, loading and error handling, and no `try/catch` in pages or components.
-- Column widths, modal width, table actions and the filter bar live in `components/layout` and `components/ui`: pages and feature components carry no arbitrary values or loose measures.
-- Route guards and the route tree live in `src/navigation`: a component must not read `context`.
-- The HTTP client renews the session once on `401` (`/v1/authentication/refresh`): the access cookie lasts 30 minutes and the trainer was being signed out.
-- `Dialog` kept the API it shares with mobile (no icon or spinner on its confirm button), so mockups 2.9, 4.3 and 5.7 show the confirm label without icon.
-- Arbitrary values allowed only inside `components/ui` and `components/layout`; static weight-400 Material Symbols font (572 KB vs 5.4 MB).
+- React 19.3.0 and Tailwind 4.3.3 are pinned exactly as required by the owner.
+- The UI follows App → Pages → Components and Pages → Hooks → Services → API; `useAsyncData` / `useAsyncAction` centralize data state and errors.
+- Services translate backend errors into Spanish `ServiceError` messages; raw English backend details are not shown to users.
+- One service file per resource and a single `ServiceError` replaced the old mock adapter layers, which no longer run.
+- Route guards and the route tree live in `src/navigation`; pages and hooks use `ROUTES`.
+- The HTTP client refreshes on an initial `401` or `403` because the API returns `403` without a session. It shares one refresh request across restoration and protected calls; a retried `403` remains forbidden, while a retried `401` clears the user.
+- Failed refresh blocks reuse of that cookie until a successful sign-in; refresh rotates its cookie and reusing an old token revokes account sessions.
+- Clients are registered by name only because the client chooses an email and the backend creates the account during mobile activation. An invited client's email can be null, and a new code can be issued before activation.
+- Training days are mandatory when assigning a routine: omitting them means every day in the API and breaks adherence calculations.
+- Replacement is detected by the `routineId` of the client's current assignment; assigning a closed routine can reopen it. Failed assignments refetch because writes are not atomic.
+- The password rule retains letters and numbers from US-001 although the API only checks 8–128 characters.
+- `Dialog` keeps its shared mobile API, so its confirm button has no icon or spinner.
+- Arbitrary CSS values live only in `components/ui` and `components/layout`; the static weight-400 Material Symbols font avoids the much larger variable font.
 
 ## Adaptations to the backend (differ from the mockup on purpose)
-- Repetitions are a single number, not a range (`6–8`): `PrescribedExerciseResource.reps` is an `int`.
-- "Sesiones por semana" is the number of sessions of the routine; changing it adds or removes session cards. The form also has a session name field and add/remove exercise controls the mockup does not draw.
-- The version history shows sessions and exercises per version instead of a change summary: the API stores none.
-- A workout row shows the time it finished, not its duration; the detail badge says "Rutina · versión N" without the routine name: the session resource has neither.
-- 1.7 has no "Abrir enlace del correo" button (it only exists to navigate the prototype). After an expired link the trainer types the email again, because the link carries only a token.
-- The signed-in name is the email prefix after a plain sign-in: `iam` does not return the name. A version author arrives as a user id; the trainer's own versions show the trainer name.
+- Prescribed repetitions are one integer, not a range; `PrescribedExerciseResource.reps` is an `int`.
+- “Sesiones por semana” controls the count of session cards; the editor also has session names and add/remove exercise controls.
+- Version history lists the sessions and exercises in each version because the API stores no change summary.
+- A workout row shows its finish time, not duration; the detail badge omits the routine name because the session resource does not provide it.
+- The expired reset-link screen asks for the email again because the link carries only a token; the prototype's “Abrir enlace del correo” button was navigation only.
+- `iam` does not return the trainer's name: after plain sign-in the UI falls back to the email prefix. Immediately after sign-up it has the supplied full name; the trainer's own versions show that name when available.
+- The web shows “Aún sin correo” before mobile activation. Client rename maps 400 to a Spanish validation error and 403/404 to client not found.
+- Exercise deletion is offered when the computed routine count is zero; the backend's 409 remains authoritative and advises archiving.
 
-## Lessons learned and mistakes to avoid
-- Errors arrive as `application/problem+json`; checking for `application/json` silently dropped every backend message.
-- There is no trainer endpoint for one workout session: read it from `GET /clients/{id}/workout-sessions`, which already carries the exercises.
-- `client-overviews.activeRoutineName` is stale after a same-day reassignment (backend). Routine clients are derived from `/clients/{id}/assignments`; the clients table still shows the overview value.
-- A message carried in `location.state` can arrive after the first render (guard redirect, then navigate): `useToast` picks it up during render.
-- When a token is added to `tokens.css`, register it in `src/utils/cn.ts`. `tokens.css` is shared with the mobile repo: never edit it in one repo only.
+## Known limits and pitfalls
+- `client-overviews` keeps showing the routine of a deactivated client (backend); the clients table uses that overview value.
+- The password reset link flow needs SMTP configured in `formai-api` for an end-to-end test.
+- An active client signing in on the web reaches the app gate; a disabled client gets invalid credentials before the gate.
+- The backend sends errors as `application/problem+json`; an `application/json`-only check drops their details.
+- There is no trainer endpoint for one workout session; read it from `GET /clients/{id}/workout-sessions`, which includes the exercises.
+- A message in `location.state` can arrive after the first render; `useToast` reads it during render.
+- Register new design tokens in `src/utils/cn.ts`. `tokens.css` must stay byte-identical to the mobile repo; do not edit it in only one repo.
+- Exercise usage comes from routine list requests and can be unavailable; a displayed zero is not proof that deletion will succeed.
 
 ## Next steps
-- TB2: W6 and W7, once `formai-api` exposes the machine catalog and the recognition report.
-- Backend: return the trainer name on sign-in, keep `client-overviews` in sync on reassignment, expose the clients of a routine and the usage count of an exercise (both are derived here with extra requests).
-- Push `main` (owner decision) so both remote branches match.
+- Merge `feature/api-alignment` into `develop`, then deploy the TP MVP.
+- TB2: build W6 and W7 when `formai-api` exposes the recognition report and machine catalog.
+- Backend follow-ups: return trainer name on sign-in, correct `client-overviews` after deactivation, and expose routine clients and exercise usage counts directly.

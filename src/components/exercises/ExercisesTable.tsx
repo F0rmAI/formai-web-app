@@ -26,14 +26,16 @@ export interface ExercisesTableProps {
   exercises: Exercise[]
   /** Called with the exercise the user wants to archive. */
   onArchive: (exercise: Exercise) => void
+  /** Called with an unused active exercise the user wants to delete. */
+  onRemove: (exercise: Exercise) => void
   /** Called with the exercise the user wants to restore. */
   onRestore: (exercise: Exercise) => void
 }
 
 /**
- * Lists the exercises of the catalog in a table and reports which one the user archives or restores.
+ * Lists exercises and reports which one the user archives, removes or restores.
  */
-export function ExercisesTable({ exercises, onArchive, onRestore }: ExercisesTableProps) {
+export function ExercisesTable({ exercises, onArchive, onRemove, onRestore }: ExercisesTableProps) {
   return (
     <Table label="Ejercicios">
       <TableRow header>
@@ -63,7 +65,12 @@ export function ExercisesTable({ exercises, onArchive, onRestore }: ExercisesTab
           </TableCell>
           <TableCell width="sm" actions>
             {exercise.status === 'ACTIVE' ? (
-              <TableAction icon="archive" label={`Archivar ${exercise.name}`} onClick={() => onArchive(exercise)} />
+              <>
+                <TableAction icon="archive" label={`Archivar ${exercise.name}`} onClick={() => onArchive(exercise)} />
+                {exercise.routineCount === 0 && (
+                  <TableAction icon="delete" label={`Eliminar ${exercise.name}`} onClick={() => onRemove(exercise)} />
+                )}
+              </>
             ) : (
               <TableAction icon="unarchive" label={`Restaurar ${exercise.name}`} onClick={() => onRestore(exercise)} />
             )}

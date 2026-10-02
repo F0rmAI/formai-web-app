@@ -7,7 +7,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClientProfileCard, ClientRoutineCard, EditBodyProfileModal } from '@/components/clients'
+import { ClientAssignmentHistory, ClientProfileCard, ClientRoutineCard, EditBodyProfileModal } from '@/components/clients'
 import { useClientOutlet } from '@/hooks/useClientOutlet'
 import { ROUTES } from '@/navigation/routes'
 import type { UpdateBodyProfileInput } from '@/types/client'
@@ -21,7 +21,7 @@ import type { UpdateBodyProfileInput } from '@/types/client'
  */
 export function ClientProfilePage() {
   const navigate = useNavigate()
-  const { client, saveBodyProfile, isSavingProfile, profileError, resetProfileError, showToast } = useClientOutlet()
+  const { client, saveBodyProfile, isSavingProfile, profileError, profileErrorField, resetProfileError, showToast } = useClientOutlet()
   const [isEditing, setIsEditing] = useState(false)
 
   const handleSave = async (input: UpdateBodyProfileInput) => {
@@ -46,12 +46,14 @@ export function ClientProfilePage() {
           onViewVersions={() => client.routine && navigate(ROUTES.routineVersions(client.routine.id))}
         />
       </div>
+      <div className="mt-2xl"><ClientAssignmentHistory assignments={client.assignments} /></div>
 
       {isEditing && (
         <EditBodyProfileModal
           profile={client.bodyProfile}
           isSubmitting={isSavingProfile}
           error={profileError}
+          errorField={profileErrorField}
           onSubmit={(input) => void handleSave(input)}
           onClose={() => setIsEditing(false)}
         />

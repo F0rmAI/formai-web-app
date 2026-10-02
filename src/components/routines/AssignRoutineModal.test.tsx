@@ -53,9 +53,9 @@ describe('AssignRoutineModal', () => {
 
     await userEvent.click(screen.getByLabelText(/Renzo Castillo/))
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(screen.getByText(
       'Renzo Castillo está inactivo y no puede recibir rutinas. Quítalo de la selección.',
-    )
+    )).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Asignar' })).toBeDisabled()
   })
 
@@ -65,8 +65,20 @@ describe('AssignRoutineModal', () => {
     await userEvent.click(screen.getByLabelText(/Diego Paredes/))
     await userEvent.clear(screen.getByLabelText('Fecha de inicio'))
     await userEvent.type(screen.getByLabelText('Fecha de inicio'), '2026-09-21')
+    await userEvent.click(screen.getByRole('button', { name: 'Lun' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Mié' }))
     await userEvent.click(screen.getByRole('button', { name: 'Asignar' }))
 
-    expect(onSubmit).toHaveBeenCalledWith([diego], '2026-09-21')
+    expect(onSubmit).toHaveBeenCalledWith([diego], '2026-09-21', ['MONDAY', 'WEDNESDAY'])
+  })
+
+  it('requires a selected training day and exposes toggles as pressed buttons', async () => {
+    renderModal()
+    await userEvent.click(screen.getByLabelText(/Diego Paredes/))
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecciona al menos un día de entrenamiento.')
+    expect(screen.getByRole('button', { name: 'Asignar' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Lun' }))
+    expect(screen.getByRole('button', { name: 'Lun' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Asignar' })).toBeEnabled()
   })
 })

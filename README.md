@@ -4,20 +4,19 @@
 
 **FormAI** es una plataforma de seguimiento de entrenamientos personalizados en gimnasios que conecta
 a **entrenadores personales** con sus **clientes**. Centraliza la gestión de la cartera de atletas, la
-prescripción de rutinas y el registro en tiempo real de lo que se ejecuta, y reemplaza las hojas de
-cálculo y los chats informales. Su diferenciador es un módulo de **IA que reconoce máquinas de gimnasio
+prescripción de rutinas y el seguimiento de lo que se ejecuta, y reemplaza las hojas de
+cálculo y los chats informales. Para TB2 está previsto un módulo de **IA que reconoce máquinas de gimnasio
 por foto** y muestra guías de uso animadas.
 
-Este repositorio es la **aplicación web (SPA)**. La usan:
+Este repositorio es la **aplicación web (SPA)**. En esta entrega la usa:
 
 - **Entrenadores**: gestionan clientes, ejercicios y rutinas, y supervisan el progreso.
-- **Administrador** (rol interno `ADMIN`): mantiene el catálogo de máquinas y los parámetros del modelo de IA.
 
 ### Ecosistema FormAI
 
 | Repositorio | Qué es | Quién lo usa |
 |---|---|---|
-| `formai-web-app` (este) | SPA React servida por Caddy | Entrenador · Administrador |
+| `formai-web-app` (este) | SPA React servida por Caddy | Entrenador |
 | `formai-mobile-app` | App React Native (iOS/Android) | Cliente / atleta |
 | `formai-api` | Backend Spring Boot (monolito modular DDD) | Ambas apps vía `/api` |
 
@@ -40,22 +39,16 @@ Este repositorio es la **aplicación web (SPA)**. La usan:
 
 **Rol Entrenador**
 
-- Registro, inicio de sesión y recuperación de contraseña por correo.
-- Gestión de clientes: alta con código de activación (vigencia de 72 h), listado paginado, búsqueda, filtro por estado, edición y desactivación conservando el historial.
-- Ficha física del cliente: objetivo, estatura, historial de peso y restricciones o lesiones.
-- Catálogo propio de ejercicios: crear, editar, archivar y restaurar, con grupo muscular.
-- Rutinas: borradores con sesiones y ejercicios prescritos (series, repeticiones, carga objetivo, descansos), duplicado, versionado automático y asignación a clientes con fecha de inicio.
-- Supervisión en tiempo real de los entrenamientos registrados y de las métricas de progreso (adherencia, volumen, historial).
-- Vinculación de ejercicios propios con máquinas del catálogo general.
-- Reporte de uso de IA: escaneos de máquinas, reproducciones de guías y máquinas marcadas como inestables.
+- Registro, inicio de sesión y recuperación de contraseña por correo. La sesión usa cookies `httpOnly`: el token de acceso dura 30 minutos y se renueva de forma transparente. Se restaura tras recargar la página o abrir otra pestaña; también se puede cerrar sesión.
+- Gestión de clientes: alta solo con nombre y código de activación válido por 72 horas (el cliente elige su correo al activar la cuenta en la app móvil). El código se puede regenerar para cualquier cliente invitado. Listado con búsqueda y filtro por estado, hasta 100 clientes por carga y sin paginación en la interfaz; cambio de nombre y desactivación conservando el historial.
+- Ficha física del cliente: objetivo, estatura, peso con historial y restricciones o lesiones; días de entrenamiento e historial de asignaciones.
+- Catálogo propio de ejercicios: crear, archivar y restaurar, con grupo muscular; eliminar si ninguna rutina usa el ejercicio.
+- Rutinas: creación con sesiones y ejercicios prescritos (series, repeticiones, carga objetivo, descansos), duplicado, edición como nueva versión e historial de versiones. Asignación a clientes activos con fecha de inicio y días de entrenamiento; reemplazo de una rutina vigente y reasignación de una cerrada.
+- Seguimiento de entrenamientos por cliente: sesiones con detalle por serie, informe de adherencia y gráfico de carga y volumen por ejercicio.
 
-**Rol Administrador**
+**Planned for TB2 (incremento final)**
 
-- Acceso interno sin visibilidad de datos personales de clientes.
-- Catálogo de 10–15 máquinas con fotos de referencia, animación MP4 (≤ 30 s) y póster.
-- Borradores de pasos clave y errores comunes generados por LLM, con revisión y aprobación humana antes de publicar.
-- Ajuste del umbral de confianza del modelo (0,70 inicial) sin actualizar la app móvil.
-- Tablero de precisión por máquina (Top-1 / Top-3, correcciones, candidatas a reentrenamiento con < 80 % de acierto).
+- Rol Administrador, catálogo de máquinas, vinculación de ejercicios con máquinas y reporte de reconocimiento por IA.
 
 ## Arquitectura
 

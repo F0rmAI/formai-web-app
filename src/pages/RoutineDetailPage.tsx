@@ -14,12 +14,15 @@ import { useRoutine } from '@/hooks/useRoutine'
 import { useToast, type ToastLocationState } from '@/hooks/useToast'
 import { ROUTES } from '@/navigation/routes'
 import type { ClientSummary } from '@/types/client'
+import type { TrainingDay } from '@/types/routine'
 import { firstName, formatCount, formatDate, parseDate, toIsoDate } from '@/utils/format'
 
 /** Assignment waiting for the trainer to confirm that it replaces current routines. */
 interface PendingAssignment {
   clients: ClientSummary[]
   startDate: string
+  trainingDays: TrainingDay[]
+  replaced: { client: ClientSummary; routineName: string }[]
 }
 
 /** Formats the day before the start date, when the replaced routines are closed. */
@@ -49,6 +52,7 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     duplicateError,
     resetDuplicateError,
     assign,
+    inspectAssignments,
     isAssigning,
     assignError,
     resetAssignError,
@@ -78,10 +82,11 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     navigate(ROUTES.routine(result.value.id), { state })
   }
 
-  const runAssignment = async ({ clients: selected, startDate }: PendingAssignment) => {
+  const runAssignment = async ({ clients: selected, startDate, trainingDays }: PendingAssignment) => {
     const result = await assign(
       selected.map((client) => client.id),
       startDate,
+      trainingDays,
     )
     setPending(null)
     if (!result.ok) {
@@ -92,9 +97,14 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     showToast(`Rutina asignada a ${toNames(selected)} desde el ${formatDate(startDate, 'day')}`)
   }
 
-  const handleAssign = (selected: ClientSummary[], startDate: string) => {
-    const assignment = { clients: selected, startDate }
-    const replaced = selected.filter((client) => client.currentRoutine && client.currentRoutine !== routine.name)
+  const handleAssign = async (selected: ClientSummary[], startDate: string, trainingDays: TrainingDay[]) => {
+    const result = await inspectAssignments(selected.map((client) => client.id))
+    if (!result.ok) return
+    const replaced = result.value.flatMap(({ clientId, current }) => {
+      const client = selected.find((item) => item.id === clientId)
+      return client && current && current.routineId !== routine.id ? [{ client, routineName: current.routineName }] : []
+    })
+    const assignment = { clients: selected, startDate, trainingDays, replaced }
     if (replaced.length === 0) {
       void runAssignment(assignment)
       return
@@ -103,7 +113,7 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     setPending(assignment)
   }
 
-  const replaced = pending?.clients.filter((client) => client.currentRoutine && client.currentRoutine !== routine.name) ?? []
+  const replaced = pending?.replaced ?? []
   const assigned = routine.assignedClients
   const sessions = formatCount(routine.sessions.length, 'sesión por semana', 'sesiones por semana')
 
@@ -129,7 +139,6 @@ function RoutineDetail({ routineId }: { routineId: string }) {
                 setIsDuplicateOpen(true)
               }}
             />
-            {routine.status !== 'CLOSED' && (
               <Button
                 label="Asignar a clientes"
                 icon="group_add"
@@ -139,7 +148,6 @@ function RoutineDetail({ routineId }: { routineId: string }) {
                   setIsAssignOpen(true)
                 }}
               />
-            )}
           </>
         }
       />
@@ -175,7 +183,7 @@ function RoutineDetail({ routineId }: { routineId: string }) {
           clients={clients}
           isSubmitting={isAssigning}
           error={assignError}
-          onSubmit={handleAssign}
+          onSubmit={(selected, startDate, trainingDays) => void handleAssign(selected, startDate, trainingDays)}
           onClose={() => setIsAssignOpen(false)}
         />
       )}
@@ -185,13 +193,13 @@ function RoutineDetail({ routineId }: { routineId: string }) {
         icon="swap_horiz"
         title={
           replaced.length === 1
-            ? `¿Reemplazar la rutina de ${firstName(replaced[0].fullName)}?`
+            ? `¿Reemplazar la rutina de ${firstName(replaced[0].client.fullName)}?`
             : `¿Reemplazar la rutina de ${replaced.length} clientes?`
         }
         description={
           replaced.length === 1
-            ? `${replaced[0].fullName} tiene vigente ${replaced[0].currentRoutine}. Se cerrará el ${toClosingDate(pending?.startDate ?? '')} y quedará en su historial.`
-            : `${replaced.map((client) => client.fullName).join(', ')} tienen una rutina vigente. Se cerrará el ${toClosingDate(pending?.startDate ?? '')} y quedará en su historial.`
+            ? `${replaced[0].client.fullName} tiene vigente ${replaced[0].routineName}. Se cerrará el ${toClosingDate(pending?.startDate ?? '')} y quedará en su historial.`
+            : `${replaced.map(({ client }) => client.fullName).join(', ')} tienen una rutina vigente. Se cerrará el ${toClosingDate(pending?.startDate ?? '')} y quedará en su historial.`
         }
         confirmLabel={isAssigning ? 'Asignando…' : 'Reemplazar y asignar'}
         onCancel={() => setPending(null)}

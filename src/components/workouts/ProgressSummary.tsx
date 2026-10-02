@@ -29,7 +29,6 @@ export interface ProgressSummaryProps {
  * the selected exercise.
  */
 export function ProgressSummary({ report, metric }: ProgressSummaryProps) {
-  const trained = report.completed + report.partial
   const volumeChange =
     metric && metric.firstVolumeKg > 0
       ? Math.round(((metric.lastVolumeKg - metric.firstVolumeKg) / metric.firstVolumeKg) * 100)
@@ -43,7 +42,7 @@ export function ProgressSummary({ report, metric }: ProgressSummaryProps) {
         <ProgressBar value={report.adherencePercentage} label="Adherencia al plan" />
         <Text variant="body-m" tone="muted">
           {report.scheduled > 0
-            ? `${trained} de ${report.scheduled} sesiones completadas`
+            ? `${report.completed} de ${report.scheduled} sesiones completadas`
             : 'Sin sesiones registradas en este periodo'}
         </Text>
       </Card>

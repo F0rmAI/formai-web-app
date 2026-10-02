@@ -13,7 +13,7 @@ import { firstName } from '@/utils/format'
  * Props accepted by {@link RegenerateCodeModal}.
  */
 export interface RegenerateCodeModalProps {
-  /** Client whose activation code expired. */
+  /** Invited client that gets a new activation code. */
   client: ClientSummary
   /** Whether the new code is being requested. */
   isSubmitting: boolean
@@ -26,16 +26,16 @@ export interface RegenerateCodeModalProps {
 }
 
 /**
- * Explains that the activation code of a client expired and reports when the user asks for a new one.
+ * Explains that a new activation code replaces the current one and reports when the user asks for it.
  */
 export function RegenerateCodeModal({ client, isSubmitting, error, onConfirm, onClose }: RegenerateCodeModalProps) {
   return (
     <Modal
       open
       onClose={onClose}
-      title={`El código de ${client.fullName} venció`}
+      title={client.status === 'INVITATION_EXPIRED' ? `El código de ${client.fullName} venció` : `Nuevo código para ${client.fullName}`}
       description={`${firstName(client.fullName)} aún no activó su cuenta. Genera un nuevo código; el anterior dejará de funcionar.`}
-      icon="key_off"
+      icon={client.status === 'INVITATION_EXPIRED' ? 'key_off' : 'key'}
       actions={
         <>
           <Button label="Cancelar" variant="secondary" size="md" onClick={onClose} />

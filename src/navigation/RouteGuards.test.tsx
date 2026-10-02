@@ -12,8 +12,8 @@ import { AuthContext, type AuthContextValue } from '@/context/auth-context'
 import { GuestOnly, RequireAuth } from './RouteGuards'
 
 /** Renders the guarded routes at a path, with or without a session. */
-function renderAt(path: string, isAuthenticated: boolean) {
-  const auth = { isAuthenticated, user: null, login: vi.fn(), register: vi.fn(), logout: vi.fn() } as AuthContextValue
+function renderAt(path: string, isAuthenticated: boolean, isRestoring = false) {
+  const auth: AuthContextValue = { isAuthenticated, isRestoring, user: null, login: vi.fn(), register: vi.fn(), logout: vi.fn() }
   render(
     <AuthContext.Provider value={auth}>
       <MemoryRouter initialEntries={[path]}>
@@ -31,6 +31,12 @@ function renderAt(path: string, isAuthenticated: boolean) {
 }
 
 describe('RouteGuards', () => {
+  it.each(['/clients', '/login'])('waits at %s while restoring a session', (path) => {
+    renderAt(path, false, true)
+
+    expect(screen.queryByText('Sign in')).not.toBeInTheDocument()
+    expect(screen.queryByText('Clients')).not.toBeInTheDocument()
+  })
   it('sends a visitor without session to the sign-in page', () => {
     renderAt('/clients', false)
 

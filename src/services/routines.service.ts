@@ -275,10 +275,12 @@ export const routinesService = {
       throwServiceError<RoutinesErrorCode>(
         error,
         {
-          404: NOT_FOUND,
-          422: { code: 'CLIENT_NOT_ASSIGNABLE', message: 'Uno o más clientes no pueden recibir rutinas.' },
+          400: { code: 'VALIDATION', message: 'Revisa los clientes, la fecha y los días elegidos. La asignación podría haberse aplicado solo a algunos clientes.' },
+          403: { code: 'ROUTINE_NOT_FOUND', message: 'No tienes acceso a esta rutina. La asignación podría haberse aplicado solo a algunos clientes.' },
+          404: { code: 'ROUTINE_NOT_FOUND', message: 'No encontramos esta rutina. La asignación podría haberse aplicado solo a algunos clientes.' },
+          422: { code: 'CLIENT_NOT_ASSIGNABLE', message: 'Uno o más clientes no están activos. La asignación podría haberse aplicado solo a algunos clientes.' },
         },
-        UNEXPECTED,
+        { code: 'UNEXPECTED', message: 'No pudimos completar la asignación. Podría haberse aplicado solo a algunos clientes.' },
       )
     }
   },

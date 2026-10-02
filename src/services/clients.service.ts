@@ -9,6 +9,7 @@ import type {
   ActivationCode,
   BodyProfile,
   ClientDetail,
+  ClientAssignment,
   ClientStatus,
   ClientStatusFilter,
   ClientSummary,
@@ -16,6 +17,7 @@ import type {
   RegisterClientInput,
   UpdateBodyProfileInput,
 } from '@/types/client'
+import type { TrainingDay } from '@/types/routine'
 import { formatDate, formatDateTime } from '@/utils/format'
 import { ApiError, apiClient } from './api-client'
 import { ServiceError, throwServiceError } from './service-error'
@@ -24,12 +26,12 @@ import { ServiceError, throwServiceError } from './service-error'
  * Codes reported by {@link clientsService}.
  *
  * @remarks
- * - `EMAIL_ALREADY_EXISTS`: the email belongs to another client of the trainer.
  * - `CLIENT_NOT_FOUND`: the client does not exist or belongs to another trainer.
+ * - `INVALID_CLIENT_NAME`: the server rejected the full name.
  * - `INVALID_BODY_PROFILE`: the server rejected the profile values.
  * - `UNEXPECTED`: any other failure.
  */
-export type ClientsErrorCode = 'EMAIL_ALREADY_EXISTS' | 'CLIENT_NOT_FOUND' | 'INVALID_BODY_PROFILE' | 'UNEXPECTED'
+export type ClientsErrorCode = 'CLIENT_NOT_FOUND' | 'INVALID_CLIENT_NAME' | 'INVALID_BODY_PROFILE' | 'INVALID_GOAL' | 'INVALID_HEIGHT' | 'INVALID_WEIGHT' | 'ALREADY_ACTIVATED' | 'UNEXPECTED'
 
 /** Page size that fits the whole portfolio of a trainer in one request. */
 const PAGE_SIZE = 100
@@ -40,7 +42,7 @@ const ACTIVATION_CODE_VALIDITY_MS = 72 * 60 * 60 * 1000
 interface ClientResource {
   id: string
   fullName: string
-  email: string
+  email: string | null
   status: string
   registeredAt: string
 }
@@ -51,6 +53,8 @@ interface ClientPageResource {
 
 interface ClientOverviewResource {
   clientId: string
+  fullName: string
+  status: string
   activeRoutineName: string | null
   lastWorkoutOn: string | null
 }
@@ -62,6 +66,7 @@ interface ClientOverviewPageResource {
 interface RegisteredClientResource {
   id: string
   fullName: string
+  status: string
   activationCode: string
   activationCodeExpiresAt: string
 }
@@ -81,9 +86,12 @@ interface BodyProfileResource {
 }
 
 interface AssignmentResource {
+  clientId: string
   routineId: string
-  routineName: string
+  routineName: string | null
   startDate: string
+  endDate: string | null
+  trainingDays: TrainingDay[]
   current: boolean
 }
 
@@ -154,9 +162,8 @@ async function getBodyProfile(clientId: string, signal?: AbortSignal): Promise<B
   }
 }
 
-/** Reads the routine a client follows today, with its current version when available. */
-async function getCurrentRoutine(clientId: string, signal?: AbortSignal): Promise<CurrentRoutine | null> {
-  const assignments = await apiClient.get<AssignmentResource[]>(`/v1/clients/${clientId}/assignments`, { signal })
+/** Reads the current routine from the already loaded assignment history. */
+async function getCurrentRoutine(assignments: AssignmentResource[], signal?: AbortSignal): Promise<CurrentRoutine | null> {
   const current = assignments.find((assignment) => assignment.current)
   if (!current) return null
   const routine = await apiClient
@@ -164,19 +171,44 @@ async function getCurrentRoutine(clientId: string, signal?: AbortSignal): Promis
     .catch(() => null)
   return {
     id: current.routineId,
-    name: current.routineName,
+    name: current.routineName?.trim() || 'Rutina de otro entrenador',
     assignedSince: formatDate(current.startDate, 'long'),
     version: routine?.currentVersion ?? null,
+    trainingDays: current.trainingDays ?? [],
+  }
+}
+
+/** Formats an assignment for the client profile. */
+function toAssignment(resource: AssignmentResource): ClientAssignment {
+  return {
+    routineId: resource.routineId,
+    routineName: resource.routineName?.trim() || 'Rutina de otro entrenador',
+    startDate: formatDate(resource.startDate),
+    endDate: resource.endDate ? formatDate(resource.endDate) : null,
+    trainingDays: resource.trainingDays ?? [],
+    current: resource.current,
   }
 }
 
 const NOT_FOUND = { code: 'CLIENT_NOT_FOUND', message: 'No se encontró el cliente solicitado.' } as const
+const INVALID_NAME = { code: 'INVALID_CLIENT_NAME', message: 'El nombre completo es obligatorio y debe tener como máximo 120 caracteres.' } as const
+const ALREADY_ACTIVATED = { code: 'ALREADY_ACTIVATED', message: 'Este cliente ya activó su cuenta y no necesita otro código.' } as const
 const UNEXPECTED = { code: 'UNEXPECTED', message: 'No pudimos completar la operación. Inténtalo de nuevo.' } as const
 
 /**
  * Calls the client endpoints of the backend.
  */
 export const clientsService = {
+  /** Reads the current assignment of one selected client before replacing a routine. */
+  async getCurrentAssignment(clientId: string, signal?: AbortSignal): Promise<{ routineId: string; routineName: string } | null> {
+    try {
+      const assignments = await apiClient.get<AssignmentResource[]>(`/v1/clients/${clientId}/assignments`, { signal })
+      const current = assignments.find((assignment) => assignment.current)
+      return current ? { routineId: current.routineId, routineName: current.routineName?.trim() || 'Rutina de otro entrenador' } : null
+    } catch (error) {
+      throwServiceError<ClientsErrorCode>(error, { 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
+    }
+  },
   /**
    * Fetches the clients of the trainer that match the search and the status.
    *
@@ -212,18 +244,20 @@ export const clientsService = {
    */
   async getById(clientId: string, signal?: AbortSignal): Promise<ClientDetail> {
     try {
-      const [client, profile, routine, overviews] = await Promise.all([
+      const [client, profile, assignments, overviews] = await Promise.all([
         apiClient.get<ClientResource>(`/v1/clients/${clientId}`, { signal }),
         getBodyProfile(clientId, signal),
-        getCurrentRoutine(clientId, signal),
+        apiClient.get<AssignmentResource[]>(`/v1/clients/${clientId}/assignments`, { signal }),
         apiClient.get<ClientOverviewPageResource>(`/v1/client-overviews?size=${PAGE_SIZE}`, { signal }),
       ])
+      const routine = await getCurrentRoutine(assignments, signal)
       const overview = overviews.content.find((item) => item.clientId === clientId)
       return {
         ...toSummary(client, overview),
         activeSince: formatDate(client.registeredAt, 'long'),
         bodyProfile: toBodyProfile(profile),
         routine,
+        assignments: assignments.map(toAssignment),
       }
     } catch (error) {
       throwServiceError<ClientsErrorCode>(error, { 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
@@ -233,9 +267,9 @@ export const clientsService = {
   /**
    * Registers a client and issues the activation code.
    *
-   * @param input - Name and email of the client.
+   * @param input - Full name of the client.
    * @returns The activation code to share with the client.
-   * @throws {@link ServiceError} with code `EMAIL_ALREADY_EXISTS` when the email is already in the portfolio.
+   * @throws {@link ServiceError} with code `INVALID_CLIENT_NAME` when the name is invalid.
    */
   async register(input: RegisterClientInput): Promise<ActivationCode> {
     try {
@@ -248,16 +282,23 @@ export const clientsService = {
         expiresAt: formatDateTime(created.activationCodeExpiresAt, 'long'),
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        const owner = await findByEmail(input.email)
-        throw new ServiceError<ClientsErrorCode>(
-          'EMAIL_ALREADY_EXISTS',
-          owner
-            ? `Este correo ya pertenece a uno de tus clientes (${owner}).`
-            : 'Este correo ya pertenece a uno de tus clientes.',
-        )
-      }
-      throwServiceError<ClientsErrorCode>(error, {}, UNEXPECTED)
+      throwServiceError<ClientsErrorCode>(error, { 400: INVALID_NAME }, UNEXPECTED)
+    }
+  },
+
+  /**
+   * Replaces a client's full name.
+   *
+   * @param clientId - Identifier of the client.
+   * @param fullName - New full name, at most 120 characters.
+   * @returns The updated client resource.
+   * @throws {@link ServiceError} with code `CLIENT_NOT_FOUND` or `INVALID_CLIENT_NAME`.
+   */
+  async rename(clientId: string, fullName: string): Promise<ClientResource> {
+    try {
+      return await apiClient.put<ClientResource>(`/v1/clients/${clientId}`, { fullName: fullName.trim() })
+    } catch (error) {
+      throwServiceError<ClientsErrorCode>(error, { 400: INVALID_NAME, 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
     }
   },
 
@@ -282,7 +323,7 @@ export const clientsService = {
         expiresAt: formatDateTime(code.expiresAt, 'long'),
       }
     } catch (error) {
-      throwServiceError<ClientsErrorCode>(error, { 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
+      throwServiceError<ClientsErrorCode>(error, { 403: NOT_FOUND, 404: NOT_FOUND, 409: ALREADY_ACTIVATED }, UNEXPECTED)
     }
   },
 
@@ -316,26 +357,22 @@ export const clientsService = {
         restrictions: input.restrictions || null,
       })
     } catch (error) {
+      if (error instanceof ApiError && error.status === 422 && error.body && typeof error.body === 'object') {
+        const field = (error.body as Record<string, unknown>).field
+        if (field === 'goal') throw new ServiceError<ClientsErrorCode>('INVALID_GOAL', 'Revisa el objetivo de entrenamiento.')
+        if (field === 'heightCm') throw new ServiceError<ClientsErrorCode>('INVALID_HEIGHT', 'La estatura debe estar entre 100 y 250 cm.')
+        if (field === 'weightKg') throw new ServiceError<ClientsErrorCode>('INVALID_WEIGHT', 'El peso debe ser mayor que 0 kg.')
+      }
       throwServiceError<ClientsErrorCode>(
         error,
         {
           403: NOT_FOUND,
           404: NOT_FOUND,
+          400: { code: 'INVALID_BODY_PROFILE', message: 'Revisa los datos de la ficha física.' },
           422: { code: 'INVALID_BODY_PROFILE', message: 'Los datos de la ficha física no son válidos.' },
         },
         UNEXPECTED,
       )
     }
   },
-}
-
-/** Looks up the name of the client that owns an email, to explain a duplicate. */
-async function findByEmail(email: string): Promise<string | null> {
-  try {
-    const page = await apiClient.get<ClientPageResource>(`/v1/clients?search=${encodeURIComponent(email)}&size=20`)
-    const normalized = email.trim().toLowerCase()
-    return page.content.find((client) => client.email.toLowerCase() === normalized)?.fullName ?? null
-  } catch {
-    return null
-  }
 }

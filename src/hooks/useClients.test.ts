@@ -71,7 +71,7 @@ describe('useClients', () => {
 
     let outcome
     await act(async () => {
-      outcome = await result.current.registerClient({ fullName: 'Lucía Fernández', email: 'lucia@correo.com' })
+      outcome = await result.current.registerClient({ fullName: 'Lucía Fernández' })
     })
 
     expect(outcome).toEqual({ ok: true, value: code })
@@ -79,14 +79,14 @@ describe('useClients', () => {
   })
 
   it('exposes the message of a failed registration and clears it on reset', async () => {
-    vi.mocked(clientsService.register).mockRejectedValue(new ServiceError('EMAIL_ALREADY_EXISTS', 'Este correo ya existe.'))
+    vi.mocked(clientsService.register).mockRejectedValue(new ServiceError('INVALID_CLIENT_NAME', 'El nombre no es válido.'))
     const { result } = renderHook(() => useClients())
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     await act(async () => {
-      await result.current.registerClient({ fullName: 'Diego', email: 'diego@correo.com' })
+      await result.current.registerClient({ fullName: 'Diego' })
     })
-    expect(result.current.registerError).toBe('Este correo ya existe.')
+    expect(result.current.registerError).toBe('El nombre no es válido.')
     expect(clientsService.list).toHaveBeenCalledTimes(1)
 
     act(() => result.current.resetRegisterError())

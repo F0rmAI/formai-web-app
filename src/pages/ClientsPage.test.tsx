@@ -26,7 +26,7 @@ const diego: ClientSummary = {
   currentRoutine: 'Hipertrofia · 4 días',
   lastWorkout: 'Mié 16 sep 2026',
 }
-const andrea: ClientSummary = { ...diego, id: 'c2', fullName: 'Andrea Quispe', email: 'andrea@correo.com', status: 'INVITATION_EXPIRED', currentRoutine: null, lastWorkout: null }
+const andrea: ClientSummary = { ...diego, id: 'c2', fullName: 'Andrea Quispe', email: null, status: 'INVITATION_EXPIRED', currentRoutine: null, lastWorkout: null }
 
 describe('ClientsPage', () => {
   beforeEach(() => {
@@ -42,6 +42,7 @@ describe('ClientsPage', () => {
     expect(within(table).getByText('Diego Paredes')).toBeInTheDocument()
     expect(within(table).getByText('Hipertrofia · 4 días')).toBeInTheDocument()
     expect(within(table).getByText('Código vencido')).toBeInTheDocument()
+    expect(within(table).getByText('Aún sin correo')).toBeInTheDocument()
   })
 
   it('invites to register the first client when there are none', async () => {
@@ -68,28 +69,28 @@ describe('ClientsPage', () => {
     await screen.findByRole('table', { name: 'Clientes' })
 
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
+    expect(screen.queryByLabelText('Correo electrónico')).not.toBeInTheDocument()
+    expect(screen.getByText(/elegirá su correo al activar su cuenta/)).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText('Nombre completo'), 'Lucía Fernández')
-    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'lucia@correo.com')
     await userEvent.click(screen.getByRole('button', { name: 'Registrar y generar código' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Lucía Fernández fue registrada' })
     expect(within(dialog).getByText('FA-7K2Q')).toBeInTheDocument()
-    expect(clientsService.register).toHaveBeenCalledWith({ fullName: 'Lucía Fernández', email: 'lucia@correo.com' })
+    expect(clientsService.register).toHaveBeenCalledWith({ fullName: 'Lucía Fernández' })
   })
 
-  it('keeps the form open and explains a duplicate email', async () => {
+  it('keeps the form open and explains an invalid name', async () => {
     vi.mocked(clientsService.register).mockRejectedValue(
-      new ServiceError('EMAIL_ALREADY_EXISTS', 'Este correo ya pertenece a uno de tus clientes (Diego Paredes).'),
+      new ServiceError('INVALID_CLIENT_NAME', 'El nombre completo no es válido.'),
     )
     render(<ClientsPage />, { wrapper: withRouter('/clients') })
     await screen.findByRole('table', { name: 'Clientes' })
 
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
     await userEvent.type(screen.getByLabelText('Nombre completo'), 'Diego Paredes')
-    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'diego@correo.com')
     await userEvent.click(screen.getByRole('button', { name: 'Registrar y generar código' }))
 
-    expect(await screen.findByText('Este correo ya pertenece a uno de tus clientes (Diego Paredes).')).toBeInTheDocument()
+    expect(await screen.findByText('El nombre completo no es válido.')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Nuevo cliente' })).toBeInTheDocument()
   })
 

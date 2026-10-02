@@ -26,6 +26,7 @@ const user: AuthUser = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER']
 const auth: AuthContextValue = {
   user: null,
   isAuthenticated: false,
+  isRestoring: false,
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
@@ -74,8 +75,9 @@ describe('useLogin', () => {
   })
 
   it.each([
+    [400, 'Revisa el correo y la contraseña e inténtalo de nuevo.'],
     [401, 'Correo o contraseña incorrectos. Inténtalo de nuevo.'],
-    [429, 'Tu cuenta está bloqueada por varios intentos fallidos. Inténtalo en 15 minutos.'],
+    [429, 'Tu cuenta está bloqueada por varios intentos fallidos. Inténtalo más tarde.'],
     [500, 'No pudimos iniciar sesión. Inténtalo de nuevo.'],
   ])('shows the message of a %i response under the password', async (status, message) => {
     vi.mocked(auth.login).mockRejectedValue(new ApiError(status, 'Invalid credentials'))
@@ -103,9 +105,33 @@ describe('useLogin', () => {
 
     expect(lastLocation.pathname).toBe('/access-app')
   })
+
+  it('shows the unlock time from the sign-in problem body', async () => {
+    vi.mocked(auth.login).mockRejectedValue(new ApiError(429, 'Locked', { lockedUntil: '2026-10-02T18:30:00Z' }))
+    const { result } = renderHook(() => useLogin(), { wrapper: withSession() })
+    act(() => { result.current.update('email', 'carla@formai.app'); result.current.update('password', 'entrena2026') })
+
+    await act(() => result.current.submit())
+
+    expect(result.current.errors.password).toContain('2/10/26')
+    expect(result.current.errors.password).toContain('13:30')
+  })
 })
 
 describe('useRegister', () => {
+  it('rejects a name longer than the backend limit', async () => {
+    const { result } = renderHook(() => useRegister(), { wrapper: withSession('/register') })
+    act(() => {
+      result.current.update('fullName', 'A'.repeat(121))
+      result.current.update('email', 'carla@formai.app')
+      result.current.update('password', 'entrena2026')
+    })
+
+    await act(() => result.current.submit())
+
+    expect(result.current.errors.fullName).toBe('El nombre completo debe tener 120 caracteres como máximo.')
+    expect(auth.register).not.toHaveBeenCalled()
+  })
   /** Fills the form with valid values, overriding the given ones. */
   function fill(result: { current: ReturnType<typeof useRegister> }, password = 'entrena2026') {
     act(() => {
@@ -115,13 +141,13 @@ describe('useRegister', () => {
     })
   }
 
-  it('rejects a password without numbers before calling the backend', async () => {
+  it('rejects a password longer than 128 characters before calling the backend', async () => {
     const { result } = renderHook(() => useRegister(), { wrapper: withSession('/register') })
-    fill(result, 'solamenteletras')
+    fill(result, 'a'.repeat(129))
 
     await act(() => result.current.submit())
 
-    expect(result.current.errors.password).toBe('Debe tener mínimo 8 caracteres e incluir letras y números.')
+    expect(result.current.errors.password).toBe('Debe tener entre 8 y 128 caracteres e incluir letras y números.')
     expect(auth.register).not.toHaveBeenCalled()
   })
 
@@ -143,6 +169,19 @@ describe('useRegister', () => {
     await act(() => result.current.submit())
 
     expect(result.current.errors.email).toBe('Este correo no está disponible. Usa otro o inicia sesión.')
+  })
+
+  it.each([
+    [400, 'Revisa los datos ingresados e inténtalo de nuevo.'],
+    [422, 'La contraseña debe tener entre 8 y 128 caracteres.'],
+  ])('maps sign-up status %i to a Spanish validation message', async (status, message) => {
+    vi.mocked(auth.register).mockRejectedValue(new ApiError(status, 'Backend detail'))
+    const { result } = renderHook(() => useRegister(), { wrapper: withSession('/register') })
+    fill(result)
+
+    await act(() => result.current.submit())
+
+    expect(result.current.errors.password).toBe(message)
   })
 })
 
@@ -224,5 +263,16 @@ describe('useResetPassword', () => {
     await act(() => result.current.submit())
 
     expect(result.current.isLinkExpired).toBe(true)
+  })
+
+  it('maps a blank reset field without claiming the link expired', async () => {
+    vi.mocked(authService.resetPassword).mockRejectedValue(new ApiError(400, 'Validation failure'))
+    const { result } = renderHook(() => useResetPassword('t1'), { wrapper: withSession('/password-reset') })
+    act(() => { result.current.update('password', 'entrena2027'); result.current.update('confirmPassword', 'entrena2027') })
+
+    await act(() => result.current.submit())
+
+    expect(result.current.isLinkExpired).toBe(false)
+    expect(result.current.errors.confirmPassword).toBe('Completa los campos obligatorios e inténtalo de nuevo.')
   })
 })

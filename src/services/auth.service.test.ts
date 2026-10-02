@@ -13,6 +13,14 @@ import { authService } from './auth.service'
 describe('authService', () => {
   afterEach(() => vi.unstubAllGlobals())
 
+  it('restores the authenticated user with one body-free refresh request', async () => {
+    const user = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' }
+    const requests = stubBackend({ 'POST /v1/authentication/refresh': user })
+
+    await expect(authService.restoreSession()).resolves.toEqual(user)
+    expect(requests).toEqual([{ method: 'POST', path: '/v1/authentication/refresh', body: undefined }])
+  })
+
   it('signs in to the web platform and returns the user with the given name', async () => {
     const requests = stubBackend({
       'POST /v1/authentication/sign-in': { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' },

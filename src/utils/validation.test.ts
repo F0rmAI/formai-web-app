@@ -21,13 +21,17 @@ describe('validation', () => {
     expect(emailFormatError('carla@')).toBe('Ingresa un correo válido')
   })
 
-  it('accepts a password with 8 characters, letters and numbers', () => {
+  it('accepts a password between 8 and 128 characters with letters and numbers', () => {
     expect(passwordError('entrena2026')).toBeUndefined()
   })
 
-  it('rejects a password that is short or lacks letters or numbers', () => {
-    expect(passwordError('abc123')).toBeDefined()
+  it('rejects a password without letters or without numbers', () => {
     expect(passwordError('solamenteletras')).toBeDefined()
     expect(passwordError('1234567890')).toBeDefined()
+  })
+
+  it('rejects a password outside the backend length range', () => {
+    expect(passwordError('abc123')).toBeDefined()
+    expect(passwordError('a'.repeat(129))).toBeDefined()
   })
 })

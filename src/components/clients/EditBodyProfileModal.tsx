@@ -27,6 +27,8 @@ export interface EditBodyProfileModalProps {
   isSubmitting: boolean
   /** Message of the failed save. */
   error: string | null
+  /** Field rejected by the backend, when known. */
+  errorField?: 'goal' | 'height' | 'weight' | null
   /** Called with the new values when the user submits a valid form. */
   onSubmit: (input: UpdateBodyProfileInput) => void
   /** Called when the user cancels or dismisses the modal. */
@@ -39,7 +41,7 @@ export interface EditBodyProfileModalProps {
  * @remarks
  * Mount it only while it is open, so the form starts from the current profile every time.
  */
-export function EditBodyProfileModal({ profile, isSubmitting, error, onSubmit, onClose }: EditBodyProfileModalProps) {
+export function EditBodyProfileModal({ profile, isSubmitting, error, errorField, onSubmit, onClose }: EditBodyProfileModalProps) {
   const formId = useId()
   const [goal, setGoal] = useState(profile.goal || GOALS[0])
   const [weight, setWeight] = useState(profile.weight ? String(profile.weight).replace('.', ',') : '')
@@ -85,7 +87,7 @@ export function EditBodyProfileModal({ profile, isSubmitting, error, onSubmit, o
     >
       <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-xl">
         {error && <Callout title={error} tone="warning" />}
-        <SelectField label="Objetivo" value={goal} options={goalOptions} onChange={setGoal} icon="flag" />
+        <SelectField label="Objetivo" value={goal} options={goalOptions} onChange={setGoal} icon="flag" error={errorField === 'goal' ? error ?? undefined : undefined} />
         <div className="grid grid-cols-1 gap-xl sm:grid-cols-2">
           <TextField
             label="Peso corporal (kg)"
@@ -93,7 +95,7 @@ export function EditBodyProfileModal({ profile, isSubmitting, error, onSubmit, o
             onChange={(event) => setWeight(event.target.value)}
             inputMode="decimal"
             leadingIcon="monitor_weight"
-            error={weightError}
+            error={weightError || (errorField === 'weight' ? error ?? undefined : undefined)}
           />
           <TextField
             label="Estatura (cm)"
@@ -101,7 +103,7 @@ export function EditBodyProfileModal({ profile, isSubmitting, error, onSubmit, o
             onChange={(event) => setHeight(event.target.value)}
             inputMode="numeric"
             leadingIcon="height"
-            error={heightError}
+            error={heightError || (errorField === 'height' ? error ?? undefined : undefined)}
           />
         </div>
         <TextField

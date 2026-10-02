@@ -39,6 +39,10 @@ export function ClientProgressPage() {
 
   const metric = report.exercises.find((exercise) => exercise.exerciseId === exerciseId)
 
+  if (!report.hasData) {
+    return <Card><EmptyState title="Sin datos en el periodo" description="Aún no hay entrenamientos para mostrar en este periodo." icon="show_chart" /></Card>
+  }
+
   return (
     <div className="flex flex-col gap-2xl">
       <ProgressFilters

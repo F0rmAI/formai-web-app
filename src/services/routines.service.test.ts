@@ -19,8 +19,8 @@ const draft = { ...routine, id: 'r2', name: 'Copia', status: 'SOMETHING_NEW', cu
 const clientRoutes = {
   'GET /v1/clients?': { content: [{ id: 'c1', fullName: 'Diego Paredes', status: 'ACTIVE' }] },
   'GET /v1/clients/c1/assignments': [
-    { routineId: 'r2', current: false },
-    { routineId: 'r1', current: true },
+    { clientId: 'c1', routineId: 'r1', routineName: 'Fuerza base', startDate: '2026-09-01', endDate: null, trainingDays: ['MONDAY'], current: true },
+    { clientId: 'c1', routineId: 'r2', routineName: 'Copia', startDate: '2026-08-01', endDate: '2026-08-31', trainingDays: ['TUESDAY'], current: false },
   ],
 }
 
@@ -98,16 +98,29 @@ describe('routinesService', () => {
   it('assigns a routine to clients from a start date', async () => {
     const requests = stubBackend({ 'POST /v1/routines/r1/assignments': [] })
 
-    await routinesService.assign('r1', { clientIds: ['c1'], startDate: '2026-09-21' })
+    await routinesService.assign('r1', { clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY', 'WEDNESDAY'] })
 
-    expect(requests[0].body).toEqual({ clientIds: ['c1'], startDate: '2026-09-21' })
+    expect(requests[0].body).toEqual({ clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY', 'WEDNESDAY'] })
   })
 
   it('reports a client that cannot receive routines', async () => {
     stubBackend({ 'POST /v1/routines/r1/assignments': { status: 422 } })
 
-    await expect(routinesService.assign('r1', { clientIds: ['c3'], startDate: '2026-09-21' })).rejects.toMatchObject({
+    await expect(routinesService.assign('r1', { clientIds: ['c3'], startDate: '2026-09-21', trainingDays: ['MONDAY'] })).rejects.toMatchObject({
       code: 'CLIENT_NOT_ASSIGNABLE',
     })
+  })
+
+  it.each([
+    [400, 'VALIDATION'],
+    [403, 'ROUTINE_NOT_FOUND'],
+    [404, 'ROUTINE_NOT_FOUND'],
+    [422, 'CLIENT_NOT_ASSIGNABLE'],
+    [500, 'UNEXPECTED'],
+  ])('maps failed assignment status %i and warns about partial success', async (status, code) => {
+    stubBackend({ 'POST /v1/routines/r1/assignments': { status, body: { detail: 'Backend detail' } } })
+
+    await expect(routinesService.assign('r1', { clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY'] }))
+      .rejects.toMatchObject({ code, message: expect.stringContaining('solo a algunos clientes') })
   })
 })

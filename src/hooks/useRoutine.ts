@@ -8,6 +8,7 @@
 import { useCallback } from 'react'
 import { clientsService } from '@/services/clients.service'
 import { routinesService } from '@/services/routines.service'
+import type { TrainingDay } from '@/types/routine'
 import { useAsyncAction } from './useAsyncAction'
 import { useAsyncData } from './useAsyncData'
 
@@ -42,6 +43,10 @@ export function useRoutine(routineId: string) {
     'No pudimos duplicar esta rutina. Inténtalo de nuevo.',
   )
   const assignment = useAsyncAction(routinesService.assign, 'No pudimos asignar esta rutina. Inténtalo de nuevo.')
+  const inspection = useAsyncAction(
+    async (clientIds: string[]) => Promise.all(clientIds.map(async (clientId) => ({ clientId, current: await clientsService.getCurrentAssignment(clientId) }))),
+    'No pudimos verificar las rutinas vigentes. Inténtalo de nuevo.',
+  )
 
   const { run: runDuplication } = duplication
   const duplicate = useCallback((name: string) => runDuplication(routineId, name), [runDuplication, routineId])
@@ -49,12 +54,10 @@ export function useRoutine(routineId: string) {
   const { run: runAssignment } = assignment
   const { refetch: refetchClients } = clients
   const assign = useCallback(
-    async (clientIds: string[], startDate: string) => {
-      const result = await runAssignment(routineId, { clientIds, startDate })
-      if (result.ok) {
-        refetch()
-        refetchClients()
-      }
+    async (clientIds: string[], startDate: string, trainingDays: TrainingDay[]) => {
+      const result = await runAssignment(routineId, { clientIds, startDate, trainingDays })
+      refetch()
+      refetchClients()
       return result
     },
     [runAssignment, routineId, refetch, refetchClients],
@@ -71,8 +74,9 @@ export function useRoutine(routineId: string) {
     duplicateError: duplication.error?.message ?? null,
     resetDuplicateError: duplication.reset,
     assign,
-    isAssigning: assignment.isRunning,
-    assignError: assignment.error?.message ?? null,
-    resetAssignError: assignment.reset,
+    inspectAssignments: inspection.run,
+    isAssigning: assignment.isRunning || inspection.isRunning,
+    assignError: inspection.error?.message ?? assignment.error?.message ?? null,
+    resetAssignError: () => { assignment.reset(); inspection.reset() },
   }
 }

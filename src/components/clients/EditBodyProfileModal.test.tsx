@@ -43,4 +43,10 @@ describe('EditBodyProfileModal', () => {
 
     expect(screen.getByText('No pudimos guardar la ficha.')).toBeInTheDocument()
   })
+
+  it('marks the field rejected by the backend', () => {
+    render(<EditBodyProfileModal profile={profile} isSubmitting={false} error="Revisa el objetivo." errorField="goal" onSubmit={vi.fn()} onClose={vi.fn()} />)
+
+    expect(screen.getByLabelText('Objetivo')).toHaveAttribute('aria-invalid', 'true')
+  })
 })

@@ -11,7 +11,7 @@ import { useAuth } from '@/context/useAuth'
 import { ROUTES } from '@/navigation/routes'
 import { ApiError } from '@/services/api-client'
 import { firstName } from '@/utils/format'
-import { emailFormatError, passwordError } from '@/utils/validation'
+import { emailFormatError, fullNameError, passwordError } from '@/utils/validation'
 import type { ToastLocationState } from './useToast'
 
 /** Values of the sign-up form. */
@@ -52,7 +52,7 @@ export function useRegister() {
 
   async function submit() {
     const invalid: RegisterErrors = {
-      fullName: fields.fullName.trim() ? undefined : 'Ingresa tu nombre completo',
+      fullName: fullNameError(fields.fullName),
       email: emailFormatError(fields.email),
       password: passwordError(fields.password),
     }
@@ -73,7 +73,9 @@ export function useRegister() {
       if (status === 409) {
         setErrors({ email: 'Este correo no está disponible. Usa otro o inicia sesión.' })
       } else if (status === 422) {
-        setErrors({ password: 'Debe tener mínimo 8 caracteres e incluir letras y números.' })
+        setErrors({ password: 'La contraseña debe tener entre 8 y 128 caracteres.' })
+      } else if (status === 400) {
+        setErrors({ password: 'Revisa los datos ingresados e inténtalo de nuevo.' })
       } else {
         setErrors({ password: 'No pudimos crear la cuenta. Inténtalo de nuevo.' })
       }

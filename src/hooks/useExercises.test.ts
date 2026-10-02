@@ -13,7 +13,7 @@ import type { Exercise } from '@/types/exercise'
 import { useExercises } from './useExercises'
 
 vi.mock('@/services/exercises.service', () => ({
-  exercisesService: { list: vi.fn(), create: vi.fn(), archive: vi.fn(), restore: vi.fn() },
+  exercisesService: { list: vi.fn(), create: vi.fn(), archive: vi.fn(), restore: vi.fn(), remove: vi.fn() },
 }))
 
 const press: Exercise = { id: 'e1', name: 'Press', muscleGroup: 'Pectoral', equipment: null, status: 'ACTIVE', routineCount: 2 }
@@ -24,6 +24,7 @@ describe('useExercises', () => {
     vi.mocked(exercisesService.create).mockReset()
     vi.mocked(exercisesService.archive).mockReset()
     vi.mocked(exercisesService.restore).mockReset()
+    vi.mocked(exercisesService.remove).mockReset()
   })
 
   it('loads the active exercises and reloads when the status changes', async () => {
@@ -72,6 +73,23 @@ describe('useExercises', () => {
     })
 
     expect(result.current.exercises).toEqual([{ ...press, status: 'ARCHIVED' }])
+    expect(exercisesService.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes an exercise and refreshes the list', async () => {
+    vi.mocked(exercisesService.remove).mockResolvedValue()
+    const { result } = renderHook(() => useExercises())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await act(async () => { expect(await result.current.removeExercise('e1')).toMatchObject({ ok: true }) })
+    expect(exercisesService.remove).toHaveBeenCalledWith('e1')
+    await waitFor(() => expect(exercisesService.list).toHaveBeenCalledTimes(2))
+  })
+
+  it('reports a conflict without refreshing', async () => {
+    vi.mocked(exercisesService.remove).mockRejectedValue(new ServiceError('EXERCISE_IN_USE', 'Archívalo en lugar de eliminarlo.'))
+    const { result } = renderHook(() => useExercises())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await act(async () => { expect(await result.current.removeExercise('e1')).toMatchObject({ ok: false }) })
     expect(exercisesService.list).toHaveBeenCalledTimes(1)
   })
 

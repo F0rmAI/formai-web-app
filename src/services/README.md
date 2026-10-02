@@ -8,11 +8,11 @@ llamadas HTTP a funciones tipadas que consumen los hooks.
 | Archivo | Uso |
 |---|---|
 | `config.ts` | URL base del backend, tomada de `VITE_API_URL` (ver `.env.example`). |
-| `api-client.ts` | Cliente `fetch` único (`apiClient.get/post/put/patch/delete`) con JSON y `ApiError` tipado. Renueva la sesión una vez ante un `401` (`/v1/authentication/refresh`) y avisa al contexto si no puede. |
+| `api-client.ts` | Cliente `fetch` único (`apiClient.get/post/put/patch/delete`) con JSON y `ApiError` tipado. Comparte una sola renovación ante un `401` o `403` inicial (`/v1/authentication/refresh`) y avisa al contexto si no puede. |
 | `service-error.ts` | `ServiceError` (código de dominio + mensaje en español listo para mostrar) y `throwServiceError`, que traduce un estado HTTP a ese error. |
 | `auth.service.ts` | Registro, inicio y cierre de sesión, recuperación de contraseña. |
-| `clients.service.ts` | Clientes del entrenador: listado, ficha, alta, código de activación, desactivación. |
-| `exercises.service.ts` | Catálogo de ejercicios: listado por estado, alta, archivar y restaurar. |
+| `clients.service.ts` | Clientes del entrenador: listado, ficha, alta, cambio de nombre, código de activación, desactivación. |
+| `exercises.service.ts` | Catálogo de ejercicios: listado por estado, alta, archivar, restaurar y eliminar si no está en uso. |
 | `routines.service.ts` | Rutinas: listado, detalle, crear, editar (nueva versión), versiones, duplicar y asignar. |
 | `workouts.service.ts` | Seguimiento de un cliente: entrenamientos, reporte de progreso y evolución por ejercicio. |
 

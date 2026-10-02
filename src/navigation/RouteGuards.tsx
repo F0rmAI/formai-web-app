@@ -13,7 +13,8 @@ import { ROUTES } from './routes'
  * Renders the nested routes only with a session; otherwise redirects to the sign-in page.
  */
 export function RequireAuth() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isRestoring } = useAuth()
+  if (isRestoring) return null
   return isAuthenticated ? <Outlet /> : <Navigate to={ROUTES.login} replace />
 }
 
@@ -21,6 +22,7 @@ export function RequireAuth() {
  * Renders the nested routes only without a session; otherwise redirects to the clients page.
  */
 export function GuestOnly() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isRestoring } = useAuth()
+  if (isRestoring) return null
   return isAuthenticated ? <Navigate to={ROUTES.clients} replace /> : <Outlet />
 }

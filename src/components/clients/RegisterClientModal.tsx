@@ -15,9 +15,9 @@ import type { RegisterClientInput } from '@/types/client'
 export interface RegisterClientModalProps {
   /** Whether the registration is being sent. */
   isSubmitting: boolean
-  /** Message of the failed registration, shown under the email field. */
+  /** Message of the failed registration, shown under the name field. */
   error: string | null
-  /** Called with the name and the email when the user submits the form. */
+  /** Called with the name when the user submits the form. */
   onSubmit: (input: RegisterClientInput) => void
   /** Called when the user cancels or dismisses the modal. */
   onClose: () => void
@@ -32,11 +32,10 @@ export interface RegisterClientModalProps {
 export function RegisterClientModal({ isSubmitting, error, onSubmit, onClose }: RegisterClientModalProps) {
   const formId = useId()
   const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    onSubmit({ fullName: fullName.trim(), email: email.trim() })
+    onSubmit({ fullName: fullName.trim() })
   }
 
   return (
@@ -44,7 +43,7 @@ export function RegisterClientModal({ isSubmitting, error, onSubmit, onClose }: 
       open
       onClose={onClose}
       title="Nuevo cliente"
-      description="Registra sus datos. Generaremos un código de activación para que active su cuenta en la app."
+      description="Registra su nombre y comparte el código de activación. El cliente elegirá su correo al activar su cuenta en la app."
       icon="person_add"
       actions={
         <>
@@ -55,7 +54,7 @@ export function RegisterClientModal({ isSubmitting, error, onSubmit, onClose }: 
             type="submit"
             form={formId}
             loading={isSubmitting}
-            disabled={!fullName.trim() || !email.trim()}
+            disabled={!fullName.trim()}
           />
         </>
       }
@@ -68,15 +67,7 @@ export function RegisterClientModal({ isSubmitting, error, onSubmit, onClose }: 
           leadingIcon="person"
           autoComplete="off"
           autoFocus
-          required
-        />
-        <TextField
-          label="Correo electrónico"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          leadingIcon="mail"
-          autoComplete="off"
+          maxLength={120}
           error={error ?? undefined}
           required
         />

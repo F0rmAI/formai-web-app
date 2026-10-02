@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { Outlet, useMatch, useNavigate, useParams } from 'react-router-dom'
+import { EditClientNameModal } from '@/components/clients'
 import { PageHeader, TabBar, ToastViewport } from '@/components/layout'
 import { Button, Card, Dialog, EmptyState, LoadingState, TabItem } from '@/components/ui'
 import { useClientDetail } from '@/hooks/useClientDetail'
@@ -17,9 +18,10 @@ import type { ClientDetail } from '@/types/client'
 
 /** Builds the line under the name: email and how long the client has been active. */
 function toSubtitle(client: ClientDetail): string {
-  if (client.status === 'ACTIVE') return `${client.email} · Activo desde el ${client.activeSince}`
-  if (client.status === 'INACTIVE') return `${client.email} · Inactivo`
-  return `${client.email} · Aún no activa su cuenta`
+  const email = client.email ?? 'Aún sin correo'
+  if (client.status === 'ACTIVE') return `${email} · Activo desde el ${client.activeSince}`
+  if (client.status === 'INACTIVE') return `${email} · Inactivo`
+  return `${email} · Aún no activa su cuenta`
 }
 
 /** Renders the frame of one client; it is keyed by client so its state never leaks to another. */
@@ -34,11 +36,17 @@ function ClientLayout({ clientId }: { clientId: string }) {
     saveBodyProfile,
     isSavingProfile,
     profileError,
+    profileErrorField,
     resetProfileError,
+    rename,
+    isRenaming,
+    renameError,
+    resetRenameError,
     deactivate,
     isDeactivating,
   } = useClientDetail(clientId)
   const [isConfirmingDeactivation, setIsConfirmingDeactivation] = useState(false)
+  const [isRenamingOpen, setIsRenamingOpen] = useState(false)
   const isWorkouts = Boolean(useMatch(ROUTES.clientWorkouts(':clientId')))
   const isProgress = Boolean(useMatch(ROUTES.clientProgress(':clientId')))
 
@@ -67,11 +75,19 @@ function ClientLayout({ clientId }: { clientId: string }) {
     navigate(ROUTES.clients, { state })
   }
 
+  const handleRename = async (fullName: string) => {
+    const result = await rename(fullName)
+    if (!result.ok) return
+    setIsRenamingOpen(false)
+    showToast('Nombre actualizado')
+  }
+
   const context: ClientOutletContext = {
     client,
     saveBodyProfile: async (input) => (await saveBodyProfile(input)).ok,
     isSavingProfile,
     profileError,
+    profileErrorField,
     resetProfileError,
     showToast,
   }
@@ -84,6 +100,16 @@ function ClientLayout({ clientId }: { clientId: string }) {
         subtitle={toSubtitle(client)}
         actions={
           <>
+            <Button
+              label="Editar nombre"
+              icon="edit"
+              variant="secondary"
+              size="md"
+              onClick={() => {
+                resetRenameError()
+                setIsRenamingOpen(true)
+              }}
+            />
             {client.status !== 'INACTIVE' && (
               <Button
                 label="Desactivar"
@@ -131,13 +157,22 @@ function ClientLayout({ clientId }: { clientId: string }) {
           if (!isDeactivating) void handleDeactivate()
         }}
       />
+      {isRenamingOpen && (
+        <EditClientNameModal
+          fullName={client.fullName}
+          isSubmitting={isRenaming}
+          error={renameError}
+          onSubmit={(name) => void handleRename(name)}
+          onClose={() => setIsRenamingOpen(false)}
+        />
+      )}
       <ToastViewport message={toast?.message} tone={toast?.tone} />
     </>
   )
 }
 
 /**
- * Shows the header, the tabs and the deactivation dialog shared by the pages of one client, using
+ * Shows the header, tabs, rename modal and deactivation dialog shared by one client, using
  * {@link useClientDetail} for data and actions; the selected tab renders inside it.
  *
  * @remarks

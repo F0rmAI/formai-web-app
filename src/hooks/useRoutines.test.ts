@@ -18,7 +18,7 @@ import { useRoutineVersions } from './useRoutineVersions'
 vi.mock('@/services/routines.service', () => ({
   routinesService: { list: vi.fn(), getById: vi.fn(), getVersions: vi.fn(), duplicate: vi.fn(), assign: vi.fn() },
 }))
-vi.mock('@/services/clients.service', () => ({ clientsService: { list: vi.fn() } }))
+vi.mock('@/services/clients.service', () => ({ clientsService: { list: vi.fn(), getCurrentAssignment: vi.fn() } }))
 vi.mock('@/context/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1', email: 'carla@formai.app', fullName: 'Carla Ríos' } }),
 }))
@@ -33,6 +33,7 @@ beforeEach(() => {
   vi.mocked(routinesService.duplicate).mockReset()
   vi.mocked(routinesService.assign).mockReset()
   vi.mocked(clientsService.list).mockReset().mockResolvedValue([])
+  vi.mocked(clientsService.getCurrentAssignment).mockReset().mockResolvedValue(null)
 })
 
 describe('useRoutines', () => {
@@ -53,6 +54,18 @@ describe('useRoutines', () => {
 })
 
 describe('useRoutine', () => {
+  it('checks current assignment ids only for selected clients', async () => {
+    vi.mocked(clientsService.getCurrentAssignment).mockResolvedValue({ routineId: 'r2', routineName: 'Otra rutina' })
+    const { result } = renderHook(() => useRoutine('r1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    let outcome
+    await act(async () => { outcome = await result.current.inspectAssignments(['c1']) })
+
+    expect(clientsService.getCurrentAssignment).toHaveBeenCalledTimes(1)
+    expect(clientsService.getCurrentAssignment).toHaveBeenCalledWith('c1')
+    expect(outcome).toMatchObject({ ok: true, value: [{ clientId: 'c1', current: { routineId: 'r2' } }] })
+  })
   it('loads the routine and every client of the trainer', async () => {
     const { result } = renderHook(() => useRoutine('r1'))
 
@@ -80,10 +93,10 @@ describe('useRoutine', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     await act(async () => {
-      await result.current.assign(['c1'], '2026-09-21')
+      await result.current.assign(['c1'], '2026-09-21', ['MONDAY'])
     })
 
-    expect(routinesService.assign).toHaveBeenCalledWith('r1', { clientIds: ['c1'], startDate: '2026-09-21' })
+    expect(routinesService.assign).toHaveBeenCalledWith('r1', { clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY'] })
     await waitFor(() => expect(routinesService.getById).toHaveBeenCalledTimes(2))
     expect(clientsService.list).toHaveBeenCalledTimes(2)
   })
@@ -94,11 +107,11 @@ describe('useRoutine', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     await act(async () => {
-      await result.current.assign(['c3'], '2026-09-21')
+      await result.current.assign(['c3'], '2026-09-21', ['MONDAY'])
     })
 
     expect(result.current.assignError).toBe('No puede recibir rutinas.')
-    expect(routinesService.getById).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(routinesService.getById).toHaveBeenCalledTimes(2))
   })
 })
 

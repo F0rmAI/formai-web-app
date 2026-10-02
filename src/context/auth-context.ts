@@ -16,8 +16,10 @@ export interface AuthContextValue {
   user: AuthUser | null
   /** Whether there is a session. */
   isAuthenticated: boolean
+  /** Whether the initial session restoration is still in progress. */
+  isRestoring: boolean
   /** Signs in and stores the user; rejects with the error of the service. */
-  login: (input: SignInInput) => Promise<AuthUser>
+  login: (input: SignInInput, fullName?: string) => Promise<AuthUser>
   /** Creates a trainer account and signs it in; rejects with the error of the service. */
   register: (input: SignUpInput) => Promise<AuthUser>
   /** Ends the session on the server and clears the stored user. */
