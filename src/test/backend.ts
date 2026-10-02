@@ -8,7 +8,7 @@
 import { vi } from 'vitest'
 import { API_URL } from '@/services/config'
 
-/** Response a fake route answers with: a JSON body, or a body with a status. */
+/** Response a fake route answers with: a JSON body, or a status with an optional body (including 204). */
 type FakeReply = unknown | { status: number; body?: unknown }
 
 /** Request received by the fake backend. */
@@ -31,7 +31,7 @@ export interface FakeRequest {
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
-    headers: { 'content-type': status >= 400 ? 'application/problem+json' : 'application/json' },
+    headers: status === 204 ? {} : { 'content-type': status >= 400 ? 'application/problem+json' : 'application/json' },
   })
 }
 

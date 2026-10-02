@@ -16,9 +16,10 @@ import { useAsyncData } from './useAsyncData'
  *
  * @param clientId - Identifier of the client; changing it loads another client.
  * @returns The `client` loaded (`null` until it arrives), the `isLoading` and `error` state,
- * `refetch`, and two actions with their state: `saveBodyProfile` (`isSavingProfile`,
- * `profileError`, `resetProfileError`) and `deactivate` (`isDeactivating`, `deactivateError`,
- * `resetDeactivateError`). Both actions resolve with an `ActionResult`.
+ * `refetch`, and three actions with their state: `saveBodyProfile` (`isSavingProfile`,
+ * `profileError`, `resetProfileError`), `rename` (`isRenaming`, `renameError`,
+ * `resetRenameError`) and `deactivate` (`isDeactivating`, `deactivateError`,
+ * `resetDeactivateError`). Each action resolves with an `ActionResult`.
  *
  * @example
  * ```tsx
@@ -37,6 +38,7 @@ export function useClientDetail(clientId: string) {
     clientsService.deactivate,
     'No pudimos desactivar a este cliente. Inténtalo de nuevo.',
   )
+  const renaming = useAsyncAction(clientsService.rename, 'No pudimos cambiar el nombre. Inténtalo de nuevo.')
 
   const { run: runProfile } = profile
   const saveBodyProfile = useCallback(
@@ -51,6 +53,16 @@ export function useClientDetail(clientId: string) {
   const { run: runDeactivation } = deactivation
   const deactivate = useCallback(() => runDeactivation(clientId), [runDeactivation, clientId])
 
+  const { run: runRenaming } = renaming
+  const rename = useCallback(
+    async (fullName: string) => {
+      const result = await runRenaming(clientId, fullName)
+      if (result.ok) refetch()
+      return result
+    },
+    [runRenaming, clientId, refetch],
+  )
+
   return {
     client: data,
     isLoading,
@@ -60,6 +72,10 @@ export function useClientDetail(clientId: string) {
     isSavingProfile: profile.isRunning,
     profileError: profile.error?.message ?? null,
     resetProfileError: profile.reset,
+    rename,
+    isRenaming: renaming.isRunning,
+    renameError: renaming.error?.message ?? null,
+    resetRenameError: renaming.reset,
     deactivate,
     isDeactivating: deactivation.isRunning,
     deactivateError: deactivation.error?.message ?? null,

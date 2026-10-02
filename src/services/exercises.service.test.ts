@@ -74,4 +74,26 @@ describe('exercisesService', () => {
 
     await expect(exercisesService.archive('zz')).rejects.toMatchObject({ code: 'EXERCISE_NOT_FOUND' })
   })
+
+  it('deletes an unused exercise with a 204 response', async () => {
+    const requests = stubBackend({ 'DELETE /v1/exercises/e2': { status: 204 } })
+
+    await expect(exercisesService.remove('e2')).resolves.toBeUndefined()
+    expect(requests[0]).toMatchObject({ method: 'DELETE', path: '/v1/exercises/e2', body: undefined })
+  })
+
+  it('tells the trainer to archive an exercise used by a routine', async () => {
+    stubBackend({ 'DELETE /v1/exercises/e1': { status: 409, body: { detail: 'Exercise in use' } } })
+
+    await expect(exercisesService.remove('e1')).rejects.toMatchObject({
+      code: 'EXERCISE_IN_USE',
+      message: expect.stringContaining('Archívalo'),
+    })
+  })
+
+  it('reports a missing exercise on delete', async () => {
+    stubBackend({ 'DELETE /v1/exercises/zz': { status: 404 } })
+
+    await expect(exercisesService.remove('zz')).rejects.toMatchObject({ code: 'EXERCISE_NOT_FOUND' })
+  })
 })

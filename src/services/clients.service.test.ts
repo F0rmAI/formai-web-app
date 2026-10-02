@@ -15,8 +15,8 @@ const longAgo = new Date(Date.now() - 100 * HOUR).toISOString()
 
 const clients = [
   { id: 'c1', fullName: 'Diego Paredes', email: 'diego@correo.com', status: 'ACTIVE', registeredAt: longAgo },
-  { id: 'c2', fullName: 'Andrea Quispe', email: 'andrea@correo.com', status: 'INVITED', registeredAt: longAgo },
-  { id: 'c3', fullName: 'Lucía Fernández', email: 'lucia@correo.com', status: 'INVITED', registeredAt: recently },
+  { id: 'c2', fullName: 'Andrea Quispe', email: null, status: 'INVITED', registeredAt: longAgo },
+  { id: 'c3', fullName: 'Lucía Fernández', email: null, status: 'INVITED', registeredAt: recently },
 ]
 const overviews = [{ clientId: 'c1', activeRoutineName: 'Hipertrofia · 4 días', lastWorkoutOn: '2026-09-16' }]
 
@@ -31,7 +31,7 @@ describe('clientsService', () => {
     expect(requests[0].path).toBe('/v1/clients?page=0&size=100&search=Die')
     expect(result.map((client) => client.status)).toEqual(['ACTIVE', 'INVITATION_EXPIRED', 'INVITED'])
     expect(result[0]).toMatchObject({ currentRoutine: 'Hipertrofia · 4 días', lastWorkout: 'Mié 16 sep 2026' })
-    expect(result[1]).toMatchObject({ currentRoutine: null, lastWorkout: null })
+    expect(result[1]).toMatchObject({ email: null, currentRoutine: null, lastWorkout: null })
   })
 
   it('asks the backend for invited clients and keeps only the expired ones', async () => {
@@ -102,21 +102,38 @@ describe('clientsService', () => {
 
   it('registers a client and returns the activation code with its expiration formatted', async () => {
     const requests = stubBackend({
-      'POST /v1/clients': { id: 'c9', fullName: 'Lucía Fernández', activationCode: 'FA-7K2Q', activationCodeExpiresAt: '2026-09-20T10:30:00' },
+      'POST /v1/clients': { id: 'c9', fullName: 'Lucía Fernández', status: 'INVITED', activationCode: 'FA-7K2Q', activationCodeExpiresAt: '2026-09-20T10:30:00' },
     })
 
-    const code = await clientsService.register({ fullName: 'Lucía Fernández', email: 'lucia@correo.com' })
+    const code = await clientsService.register({ fullName: 'Lucía Fernández' })
 
-    expect(requests[0].body).toEqual({ fullName: 'Lucía Fernández', email: 'lucia@correo.com' })
+    expect(requests[0].body).toEqual({ fullName: 'Lucía Fernández' })
     expect(code).toEqual({ clientId: 'c9', clientName: 'Lucía Fernández', code: 'FA-7K2Q', expiresAt: '20 de septiembre de 2026, 10:30' })
   })
 
-  it('names the client that already uses the email', async () => {
-    stubBackend({ 'POST /v1/clients': { status: 409 }, 'GET /v1/clients': { content: clients } })
+  it('reports an invalid registration name', async () => {
+    stubBackend({ 'POST /v1/clients': { status: 400 } })
 
-    await expect(clientsService.register({ fullName: 'Otro', email: 'DIEGO@correo.com' })).rejects.toMatchObject({
-      code: 'EMAIL_ALREADY_EXISTS',
-      message: 'Este correo ya pertenece a uno de tus clientes (Diego Paredes).',
+    await expect(clientsService.register({ fullName: '' })).rejects.toMatchObject({
+      code: 'INVALID_CLIENT_NAME',
+      message: expect.stringContaining('120'),
+    })
+  })
+
+  it('renames a client and sends only the full name', async () => {
+    const updated = { ...clients[0], fullName: 'Diego Ramos' }
+    const requests = stubBackend({ 'PUT /v1/clients/c1': updated })
+
+    await expect(clientsService.rename('c1', ' Diego Ramos ')).resolves.toEqual(updated)
+    expect(requests[0]).toMatchObject({ method: 'PUT', path: '/v1/clients/c1', body: { fullName: 'Diego Ramos' } })
+  })
+
+  it.each([400, 403, 404])('maps rename status %i to a Spanish service error', async (status) => {
+    stubBackend({ 'PUT /v1/clients/c1': { status, body: { detail: 'Backend detail' } } })
+
+    await expect(clientsService.rename('c1', 'Diego')).rejects.toMatchObject({
+      code: status === 400 ? 'INVALID_CLIENT_NAME' : 'CLIENT_NOT_FOUND',
+      message: expect.not.stringContaining('Backend detail'),
     })
   })
 

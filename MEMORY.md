@@ -5,7 +5,8 @@ Inter-session project memory. This file contains about 50 lines: summarize or re
 ## Current status (2026-10-02)
 - `develop` holds the MVP (TB1) of the trainer web: flows W1 access, W2 clients, W3 tracking, W4 exercises and W5 routines, every frame of the Figma page `formai_web_mockup` up to 5.12. `main` (5 local commits, not pushed) and every feature branch are merged into it.
 - Session handling (US-002) aligns with the backend: initial `403` renews and retries; missing stored user restores from the refresh cookie before guards decide. Validation caps the sign-up name at 120 characters.
-- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings on 2026-10-01. 184 tests pass; lint, typecheck and build are clean.
+- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings on 2026-10-01. On `feature/api-alignment`, 199 tests pass; lint, typecheck and build are clean (2026-10-02).
+- P2/P4 API alignment on `feature/api-alignment` (uncommitted): client registration sends only `fullName`; invited clients can have null email; detail supports rename; unused exercises can be deleted.
 - The five flows were run in a browser against a local `formai-api` on 2026-10-01 (accounts `qa.trainer.*@formai.test` were left in the local database).
 - Not built: W6 recognition report and W7 machine catalog (TB2, admin role). The backend has no endpoints for them, except `PUT /exercises/{id}/machine-link`.
 
@@ -27,6 +28,8 @@ Inter-session project memory. This file contains about 50 lines: summarize or re
 - A workout row shows the time it finished, not its duration; the detail badge says "Rutina · versión N" without the routine name: the session resource has neither.
 - 1.7 has no "Abrir enlace del correo" button (it only exists to navigate the prototype). After an expired link the trainer types the email again, because the link carries only a token.
 - The signed-in name is the email prefix after a plain sign-in: `iam` does not return the name. A version author arrives as a user id; the trainer's own versions show the trainer name.
+- Client email is chosen during mobile activation. The web shows “Aún sin correo” for null email; rename maps 400 to a Spanish validation error and 403/404 to client not found.
+- Exercise deletion is offered when the computed routine count is zero. The backend remains authoritative: its 409 is shown as guidance to archive instead.
 
 ## Lessons learned and mistakes to avoid
 - Spring Security answers `403` when the protected route has no valid JWT cookie. Only sign-in and refresh answer `401`; refresh rotates its cookie and reusing an old token revokes every account session.
@@ -35,6 +38,7 @@ Inter-session project memory. This file contains about 50 lines: summarize or re
 - `client-overviews.activeRoutineName` is stale after a same-day reassignment (backend). Routine clients are derived from `/clients/{id}/assignments`; the clients table still shows the overview value.
 - A message carried in `location.state` can arrive after the first render (guard redirect, then navigate): `useToast` picks it up during render.
 - When a token is added to `tokens.css`, register it in `src/utils/cn.ts`. `tokens.css` is shared with the mobile repo: never edit it in one repo only.
+- Exercise usage is derived from routine list requests and can be unavailable; never treat the displayed zero as proof that deletion will succeed.
 
 ## Next steps
 - TB2: W6 and W7, once `formai-api` exposes the machine catalog and the recognition report.

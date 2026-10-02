@@ -21,7 +21,7 @@ const statusOptions: SelectOption<ExerciseStatus>[] = [
 
 /**
  * Shows the exercise catalog of the trainer by status, with the modal that adds an exercise and
- * the dialog that archives one, using {@link useExercises} for data and actions.
+ * the dialogs that archive or remove one, using {@link useExercises} for data and actions.
  *
  * @remarks
  * Requires an authenticated session; the route guard redirects otherwise.
@@ -41,10 +41,13 @@ export function ExercisesPage() {
     resetCreateError,
     archiveExercise,
     restoreExercise,
+    removeExercise,
+    isRemoving,
     isChangingStatus,
   } = useExercises()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [exerciseToArchive, setExerciseToArchive] = useState<Exercise | null>(null)
+  const [exerciseToRemove, setExerciseToRemove] = useState<Exercise | null>(null)
   const isArchivedView = status === 'ARCHIVED'
 
   const openCreate = () => {
@@ -70,6 +73,13 @@ export function ExercisesPage() {
   const handleRestore = async (exercise: Exercise) => {
     const result = await restoreExercise(exercise.id)
     if (result.ok) showToast('Ejercicio restaurado · vuelve a estar disponible')
+    else showToast(result.error.message, 'error')
+  }
+
+  const handleRemove = async (exercise: Exercise) => {
+    const result = await removeExercise(exercise.id)
+    setExerciseToRemove(null)
+    if (result.ok) showToast('Ejercicio eliminado del catálogo')
     else showToast(result.error.message, 'error')
   }
 
@@ -110,6 +120,7 @@ export function ExercisesPage() {
           <ExercisesTable
             exercises={exercises}
             onArchive={setExerciseToArchive}
+            onRemove={setExerciseToRemove}
             onRestore={(exercise) => {
               if (!isChangingStatus) void handleRestore(exercise)
             }}
@@ -155,6 +166,18 @@ export function ExercisesPage() {
         onCancel={() => setExerciseToArchive(null)}
         onConfirm={() => {
           if (exerciseToArchive && !isChangingStatus) void handleArchive(exerciseToArchive)
+        }}
+      />
+      <Dialog
+        open={Boolean(exerciseToRemove)}
+        tone="danger"
+        icon="delete"
+        title={`¿Eliminar ${exerciseToRemove?.name ?? 'este ejercicio'}?`}
+        description="Se eliminará del catálogo. Esta acción no se puede deshacer."
+        confirmLabel={isRemoving ? 'Eliminando…' : 'Eliminar ejercicio'}
+        onCancel={() => setExerciseToRemove(null)}
+        onConfirm={() => {
+          if (exerciseToRemove && !isRemoving) void handleRemove(exerciseToRemove)
         }}
       />
       <ToastViewport message={toast?.message} tone={toast?.tone} />

@@ -15,9 +15,10 @@ import { type ErrorMapping, throwServiceError } from './service-error'
  * @remarks
  * - `NAME_ALREADY_EXISTS`: the catalog already has an exercise with that name.
  * - `EXERCISE_NOT_FOUND`: the exercise does not exist or belongs to another trainer.
+ * - `EXERCISE_IN_USE`: a routine uses the exercise; archive it instead.
  * - `UNEXPECTED`: any other failure.
  */
-export type ExercisesErrorCode = 'NAME_ALREADY_EXISTS' | 'EXERCISE_NOT_FOUND' | 'UNEXPECTED'
+export type ExercisesErrorCode = 'NAME_ALREADY_EXISTS' | 'EXERCISE_NOT_FOUND' | 'EXERCISE_IN_USE' | 'UNEXPECTED'
 
 /** Page size that fits the whole catalog of a trainer in one request. */
 const PAGE_SIZE = 100
@@ -156,6 +157,23 @@ export const exercisesService = {
       return toExercise(await apiClient.post<ExerciseResource>(`/v1/exercises/${exerciseId}/restorations`))
     } catch (error) {
       throwServiceError(error, { 404: NOT_FOUND }, UNEXPECTED)
+    }
+  },
+
+  /**
+   * Deletes an exercise that no routine uses.
+   *
+   * @param exerciseId - Identifier of the exercise.
+   * @throws {@link ServiceError} with code `EXERCISE_IN_USE` or `EXERCISE_NOT_FOUND`.
+   */
+  async remove(exerciseId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/v1/exercises/${exerciseId}`)
+    } catch (error) {
+      throwServiceError<ExercisesErrorCode>(error, {
+        404: NOT_FOUND,
+        409: { code: 'EXERCISE_IN_USE', message: 'Este ejercicio se usa en una rutina. Archívalo en lugar de eliminarlo.' },
+      }, UNEXPECTED)
     }
   },
 }

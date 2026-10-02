@@ -41,7 +41,7 @@ export function ClientsTable({ clients, onOpenClient, onRegenerateCode }: Client
           <TableCell>
             <Text variant="body-l-strong">{client.fullName}</Text>
             <Text variant="body-m" tone="muted">
-              {client.email}
+              {client.email ?? 'Aún sin correo'}
             </Text>
           </TableCell>
           <TableCell width="md" label="Estado">

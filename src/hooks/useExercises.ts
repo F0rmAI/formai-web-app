@@ -12,8 +12,8 @@ import { useAsyncAction } from './useAsyncAction'
 import { useAsyncData } from './useAsyncData'
 
 /**
- * Loads the exercises of the catalog by status and exposes the actions to create, archive and
- * restore them.
+ * Loads the exercises of the catalog by status and exposes the actions to create, archive,
+ * restore and remove them.
  *
  * @remarks
  * An archived or restored exercise stays in the list with its new status until the list is
@@ -21,8 +21,8 @@ import { useAsyncData } from './useAsyncData'
  *
  * @returns The `exercises` loaded, the `status` filter with `setStatus`, the `isLoading` and
  * `error` state, `refetch`, and the actions `createExercise` (`isCreating`, `createError`,
- * `resetCreateError`), `archiveExercise` and `restoreExercise` (`isChangingStatus`). Every action
- * resolves with an `ActionResult` that carries the exercise.
+ * `resetCreateError`), `archiveExercise` and `restoreExercise` (`isChangingStatus`), and
+ * `removeExercise` (`isRemoving`). Every action resolves with an `ActionResult`.
  *
  * @example
  * ```tsx
@@ -41,6 +41,7 @@ export function useExercises() {
   const creation = useAsyncAction(exercisesService.create, 'No pudimos guardar el ejercicio. Inténtalo nuevamente.')
   const archival = useAsyncAction(exercisesService.archive, 'No pudimos archivar este ejercicio. Inténtalo de nuevo.')
   const restoration = useAsyncAction(exercisesService.restore, 'No pudimos restaurar este ejercicio.')
+  const removal = useAsyncAction(exercisesService.remove, 'No pudimos eliminar este ejercicio.')
 
   const { run: runCreation } = creation
   const createExercise = useCallback(
@@ -81,6 +82,16 @@ export function useExercises() {
     [runRestoration, applyStatus],
   )
 
+  const { run: runRemoval } = removal
+  const removeExercise = useCallback(
+    async (exerciseId: string) => {
+      const result = await runRemoval(exerciseId)
+      if (result.ok) refetch()
+      return result
+    },
+    [runRemoval, refetch],
+  )
+
   return {
     exercises: data ?? [],
     status,
@@ -94,6 +105,8 @@ export function useExercises() {
     resetCreateError: creation.reset,
     archiveExercise,
     restoreExercise,
+    removeExercise,
+    isRemoving: removal.isRunning,
     isChangingStatus: archival.isRunning || restoration.isRunning,
   }
 }

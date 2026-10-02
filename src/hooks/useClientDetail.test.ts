@@ -13,7 +13,7 @@ import type { ClientDetail } from '@/types/client'
 import { useClientDetail } from './useClientDetail'
 
 vi.mock('@/services/clients.service', () => ({
-  clientsService: { getById: vi.fn(), updateBodyProfile: vi.fn(), deactivate: vi.fn() },
+  clientsService: { getById: vi.fn(), rename: vi.fn(), updateBodyProfile: vi.fn(), deactivate: vi.fn() },
 }))
 
 const client = { id: 'c1', fullName: 'Diego Paredes' } as ClientDetail
@@ -22,6 +22,7 @@ const profile = { goal: 'Fuerza', weight: 78, height: 176, restrictions: '' }
 describe('useClientDetail', () => {
   beforeEach(() => {
     vi.mocked(clientsService.getById).mockReset().mockResolvedValue(client)
+    vi.mocked(clientsService.rename).mockReset().mockResolvedValue({ id: 'c1', fullName: 'Diego Paredes', email: null, status: 'ACTIVE', registeredAt: '2026-10-01' })
     vi.mocked(clientsService.updateBodyProfile).mockReset().mockResolvedValue()
     vi.mocked(clientsService.deactivate).mockReset().mockResolvedValue()
   })
@@ -66,6 +67,25 @@ describe('useClientDetail', () => {
     })
 
     expect(result.current.profileError).toBe('No es válido.')
+  })
+
+  it('renames a client and reloads the header data', async () => {
+    const { result } = renderHook(() => useClientDetail('c1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await act(async () => {
+      expect(await result.current.rename('Diego Ramos')).toMatchObject({ ok: true })
+    })
+    expect(clientsService.rename).toHaveBeenCalledWith('c1', 'Diego Ramos')
+    await waitFor(() => expect(clientsService.getById).toHaveBeenCalledTimes(2))
+  })
+
+  it('shows a rename error without reloading the client', async () => {
+    vi.mocked(clientsService.rename).mockRejectedValue(new ServiceError('INVALID_CLIENT_NAME', 'Nombre inválido.'))
+    const { result } = renderHook(() => useClientDetail('c1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await act(async () => { await result.current.rename('') })
+    expect(result.current.renameError).toBe('Nombre inválido.')
+    expect(clientsService.getById).toHaveBeenCalledTimes(1)
   })
 
   it('deactivates the client', async () => {

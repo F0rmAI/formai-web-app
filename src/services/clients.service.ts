@@ -18,18 +18,18 @@ import type {
 } from '@/types/client'
 import { formatDate, formatDateTime } from '@/utils/format'
 import { ApiError, apiClient } from './api-client'
-import { ServiceError, throwServiceError } from './service-error'
+import { throwServiceError } from './service-error'
 
 /**
  * Codes reported by {@link clientsService}.
  *
  * @remarks
- * - `EMAIL_ALREADY_EXISTS`: the email belongs to another client of the trainer.
  * - `CLIENT_NOT_FOUND`: the client does not exist or belongs to another trainer.
+ * - `INVALID_CLIENT_NAME`: the server rejected the full name.
  * - `INVALID_BODY_PROFILE`: the server rejected the profile values.
  * - `UNEXPECTED`: any other failure.
  */
-export type ClientsErrorCode = 'EMAIL_ALREADY_EXISTS' | 'CLIENT_NOT_FOUND' | 'INVALID_BODY_PROFILE' | 'UNEXPECTED'
+export type ClientsErrorCode = 'CLIENT_NOT_FOUND' | 'INVALID_CLIENT_NAME' | 'INVALID_BODY_PROFILE' | 'UNEXPECTED'
 
 /** Page size that fits the whole portfolio of a trainer in one request. */
 const PAGE_SIZE = 100
@@ -40,7 +40,7 @@ const ACTIVATION_CODE_VALIDITY_MS = 72 * 60 * 60 * 1000
 interface ClientResource {
   id: string
   fullName: string
-  email: string
+  email: string | null
   status: string
   registeredAt: string
 }
@@ -51,6 +51,8 @@ interface ClientPageResource {
 
 interface ClientOverviewResource {
   clientId: string
+  fullName: string
+  status: string
   activeRoutineName: string | null
   lastWorkoutOn: string | null
 }
@@ -62,6 +64,7 @@ interface ClientOverviewPageResource {
 interface RegisteredClientResource {
   id: string
   fullName: string
+  status: string
   activationCode: string
   activationCodeExpiresAt: string
 }
@@ -171,6 +174,7 @@ async function getCurrentRoutine(clientId: string, signal?: AbortSignal): Promis
 }
 
 const NOT_FOUND = { code: 'CLIENT_NOT_FOUND', message: 'No se encontró el cliente solicitado.' } as const
+const INVALID_NAME = { code: 'INVALID_CLIENT_NAME', message: 'El nombre completo es obligatorio y debe tener como máximo 120 caracteres.' } as const
 const UNEXPECTED = { code: 'UNEXPECTED', message: 'No pudimos completar la operación. Inténtalo de nuevo.' } as const
 
 /**
@@ -233,9 +237,9 @@ export const clientsService = {
   /**
    * Registers a client and issues the activation code.
    *
-   * @param input - Name and email of the client.
+   * @param input - Full name of the client.
    * @returns The activation code to share with the client.
-   * @throws {@link ServiceError} with code `EMAIL_ALREADY_EXISTS` when the email is already in the portfolio.
+   * @throws {@link ServiceError} with code `INVALID_CLIENT_NAME` when the name is invalid.
    */
   async register(input: RegisterClientInput): Promise<ActivationCode> {
     try {
@@ -248,16 +252,23 @@ export const clientsService = {
         expiresAt: formatDateTime(created.activationCodeExpiresAt, 'long'),
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        const owner = await findByEmail(input.email)
-        throw new ServiceError<ClientsErrorCode>(
-          'EMAIL_ALREADY_EXISTS',
-          owner
-            ? `Este correo ya pertenece a uno de tus clientes (${owner}).`
-            : 'Este correo ya pertenece a uno de tus clientes.',
-        )
-      }
-      throwServiceError<ClientsErrorCode>(error, {}, UNEXPECTED)
+      throwServiceError<ClientsErrorCode>(error, { 400: INVALID_NAME }, UNEXPECTED)
+    }
+  },
+
+  /**
+   * Replaces a client's full name.
+   *
+   * @param clientId - Identifier of the client.
+   * @param fullName - New full name, at most 120 characters.
+   * @returns The updated client resource.
+   * @throws {@link ServiceError} with code `CLIENT_NOT_FOUND` or `INVALID_CLIENT_NAME`.
+   */
+  async rename(clientId: string, fullName: string): Promise<ClientResource> {
+    try {
+      return await apiClient.put<ClientResource>(`/v1/clients/${clientId}`, { fullName: fullName.trim() })
+    } catch (error) {
+      throwServiceError<ClientsErrorCode>(error, { 400: INVALID_NAME, 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
     }
   },
 
@@ -327,15 +338,4 @@ export const clientsService = {
       )
     }
   },
-}
-
-/** Looks up the name of the client that owns an email, to explain a duplicate. */
-async function findByEmail(email: string): Promise<string | null> {
-  try {
-    const page = await apiClient.get<ClientPageResource>(`/v1/clients?search=${encodeURIComponent(email)}&size=20`)
-    const normalized = email.trim().toLowerCase()
-    return page.content.find((client) => client.email.toLowerCase() === normalized)?.fullName ?? null
-  } catch {
-    return null
-  }
 }

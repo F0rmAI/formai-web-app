@@ -29,8 +29,8 @@ export interface ClientSummary {
   id: string
   /** Full name of the client. */
   fullName: string
-  /** Email used to sign in to the mobile app. */
-  email: string
+  /** Email used to sign in to the mobile app, or `null` before activation. */
+  email: string | null
   /** Lifecycle state. */
   status: ClientStatus
   /** Name of the routine the client follows today, or `null` when there is none. */
@@ -99,8 +99,6 @@ export interface ClientDetail extends ClientSummary {
 export interface RegisterClientInput {
   /** Full name of the client. */
   fullName: string
-  /** Email the client will use to sign in. */
-  email: string
 }
 
 /**
