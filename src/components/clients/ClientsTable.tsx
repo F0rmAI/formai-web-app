@@ -48,7 +48,7 @@ export function ClientsTable({ clients, onOpenClient, onRegenerateCode }: Client
             <ClientStatusBadge status={client.status} />
           </TableCell>
           <TableCell width="lg" label="Rutina vigente">
-            <Text tone="secondary">{client.currentRoutine ?? (client.status === 'INACTIVE' ? '—' : 'Sin rutina')}</Text>
+            <Text tone="secondary">{client.status === 'INACTIVE' ? '—' : (client.currentRoutine ?? 'Sin rutina')}</Text>
           </TableCell>
           <TableCell width="lg" label="Último entrenamiento">
             <Text tone="secondary">{client.lastWorkout ?? '—'}</Text>
