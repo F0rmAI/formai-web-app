@@ -71,6 +71,9 @@ export function useClientDetail(clientId: string) {
     saveBodyProfile,
     isSavingProfile: profile.isRunning,
     profileError: profile.error?.message ?? null,
+    profileErrorField: profile.error?.code === 'INVALID_GOAL' ? 'goal' as const
+      : profile.error?.code === 'INVALID_HEIGHT' ? 'height' as const
+        : profile.error?.code === 'INVALID_WEIGHT' ? 'weight' as const : null,
     resetProfileError: profile.reset,
     rename,
     isRenaming: renaming.isRunning,

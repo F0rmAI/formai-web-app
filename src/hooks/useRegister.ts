@@ -73,7 +73,9 @@ export function useRegister() {
       if (status === 409) {
         setErrors({ email: 'Este correo no está disponible. Usa otro o inicia sesión.' })
       } else if (status === 422) {
-        setErrors({ password: 'Debe tener mínimo 8 caracteres e incluir letras y números.' })
+        setErrors({ password: 'La contraseña debe tener entre 8 y 128 caracteres.' })
+      } else if (status === 400) {
+        setErrors({ password: 'Revisa los datos ingresados e inténtalo de nuevo.' })
       } else {
         setErrors({ password: 'No pudimos crear la cuenta. Inténtalo de nuevo.' })
       }

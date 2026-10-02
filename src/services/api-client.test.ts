@@ -81,6 +81,12 @@ describe('apiClient', () => {
     await expect(apiClient.get('/items')).rejects.toMatchObject({ status: 422, message: 'Invalid credentials' })
   })
 
+  it('does not parse the plain-text body of a 500 response as JSON', async () => {
+    fetchMock.mockResolvedValue(new Response('Unexpected error', { status: 500, headers: { 'content-type': 'text/plain' } }))
+
+    await expect(apiClient.get('/items')).rejects.toMatchObject({ status: 500, body: undefined })
+  })
+
   it.each([401, 403])('renews the session once and retries after an initial %i', async (status) => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({}, status))

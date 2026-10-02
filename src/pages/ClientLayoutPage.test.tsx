@@ -21,6 +21,7 @@ vi.mock('@/services/clients.service', () => ({
 const client: ClientDetail = {
   id: 'c1', fullName: 'Andrea Quispe', email: null, status: 'INVITED', currentRoutine: null,
   lastWorkout: null, activeSince: '1 de octubre de 2026', routine: null,
+  assignments: [],
   bodyProfile: { goal: '', weight: 0, height: 0, restrictions: '', updatedAt: '', weightHistory: [] },
 }
 

@@ -36,7 +36,7 @@ export function fullNameError(fullName: string): string | undefined {
 }
 
 /**
- * Validates that a password has at least 8 characters, with letters and numbers.
+ * Validates that a password has 8 to 128 characters, with letters and numbers.
  *
  * @param password - Text typed in the password field.
  * @returns The message to show, or `undefined` when the password is valid.
@@ -50,7 +50,7 @@ export function passwordError(password: string): string | undefined {
   const hasValidLength = password.length >= 8 && password.length <= 128
   const hasLettersAndNumbers = /[A-Za-zÀ-ÿ]/.test(password) && /\d/.test(password)
   if (!hasValidLength || !hasLettersAndNumbers) {
-    return 'Debe tener mínimo 8 caracteres e incluir letras y números.'
+    return 'Debe tener entre 8 y 128 caracteres e incluir letras y números.'
   }
   return undefined
 }

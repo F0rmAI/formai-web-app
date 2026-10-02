@@ -7,6 +7,7 @@
 
 import { Badge, Button, Card, EmptyState, Text } from '@/components/ui'
 import type { CurrentRoutine } from '@/types/client'
+import { formatTrainingDays } from '@/utils/training-days'
 
 /**
  * Props accepted by {@link ClientRoutineCard}.
@@ -40,6 +41,7 @@ export function ClientRoutineCard({ routine, onEdit, onViewVersions }: ClientRou
             Asignada desde el {routine.assignedSince}
             {routine.version !== null && ` · versión ${routine.version}`}
           </Text>
+          <Text variant="body-m" tone="secondary">Días de entrenamiento: {formatTrainingDays(routine.trainingDays)}</Text>
           <div className="flex flex-wrap gap-md">
             <Button label="Editar rutina" icon="edit_note" size="sm" onClick={onEdit} />
             <Button label="Ver versiones" icon="history" variant="secondary" size="sm" onClick={onViewVersions} />

@@ -36,6 +36,7 @@ function ClientLayout({ clientId }: { clientId: string }) {
     saveBodyProfile,
     isSavingProfile,
     profileError,
+    profileErrorField,
     resetProfileError,
     rename,
     isRenaming,
@@ -86,6 +87,7 @@ function ClientLayout({ clientId }: { clientId: string }) {
     saveBodyProfile: async (input) => (await saveBodyProfile(input)).ok,
     isSavingProfile,
     profileError,
+    profileErrorField,
     resetProfileError,
     showToast,
   }

@@ -66,9 +66,19 @@ export function useLogin() {
       if (status === 403) {
         navigate(ROUTES.clientGate, { replace: true })
       } else if (status === 429) {
-        setErrors({ password: 'Tu cuenta está bloqueada por varios intentos fallidos. Inténtalo en 15 minutos.' })
-      } else if (status === 400 || status === 401) {
+        const lockedUntil = error instanceof ApiError && error.body && typeof error.body === 'object'
+          ? (error.body as Record<string, unknown>).lockedUntil : null
+        const unlockDate = typeof lockedUntil === 'string' ? new Date(lockedUntil) : null
+        const unlockTime = unlockDate && !Number.isNaN(unlockDate.getTime())
+          ? new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Lima' }).format(unlockDate)
+          : null
+        setErrors({ password: unlockTime
+          ? `Tu cuenta está bloqueada por varios intentos fallidos. Inténtalo después del ${unlockTime}.`
+          : 'Tu cuenta está bloqueada por varios intentos fallidos. Inténtalo más tarde.' })
+      } else if (status === 401) {
         setErrors({ password: 'Correo o contraseña incorrectos. Inténtalo de nuevo.' })
+      } else if (status === 400) {
+        setErrors({ password: 'Revisa el correo y la contraseña e inténtalo de nuevo.' })
       } else {
         setErrors({ password: 'No pudimos iniciar sesión. Inténtalo de nuevo.' })
       }

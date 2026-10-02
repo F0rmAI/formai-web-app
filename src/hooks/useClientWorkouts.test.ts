@@ -28,6 +28,7 @@ const metric = (exerciseId: string) => ({
   lastVolumeKg: 120,
 })
 const report = (ids: string[]): ProgressReport => ({
+  hasData: true,
   adherencePercentage: 80,
   scheduled: 5,
   completed: 4,

@@ -102,7 +102,12 @@ export interface AssignRoutineInput {
   clientIds: string[]
   /** First day of the assignment, in `YYYY-MM-DD` format. */
   startDate: string
+  /** Days on which the client trains, in backend weekday notation. */
+  trainingDays: TrainingDay[]
 }
+
+/** Weekday values accepted by routine assignments. */
+export type TrainingDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
 /**
  * Describes a prescribed exercise while it is edited in the routine form.

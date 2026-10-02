@@ -9,6 +9,7 @@ export { ActivationCodeModal, type ActivationCodeModalProps } from './Activation
 export { ClientFilters, type ClientFiltersProps } from './ClientFilters'
 export { ClientProfileCard, type ClientProfileCardProps } from './ClientProfileCard'
 export { ClientRoutineCard, type ClientRoutineCardProps } from './ClientRoutineCard'
+export { ClientAssignmentHistory, type ClientAssignmentHistoryProps } from './ClientAssignmentHistory'
 export { ClientStatusBadge, type ClientStatusBadgeProps } from './ClientStatusBadge'
 export { ClientsTable, type ClientsTableProps } from './ClientsTable'
 export { EditBodyProfileModal, type EditBodyProfileModalProps } from './EditBodyProfileModal'

@@ -5,6 +5,8 @@
  * @packageDocumentation
  */
 
+import type { TrainingDay } from '@/types/routine'
+
 /**
  * Lifecycle states of a client.
  *
@@ -79,6 +81,24 @@ export interface CurrentRoutine {
   assignedSince: string
   /** Current version of the routine, or `null` when it could not be read. */
   version: number | null
+  /** Training days of the current assignment, in Monday to Sunday order. */
+  trainingDays: TrainingDay[]
+}
+
+/** One assignment in the history of a client. */
+export interface ClientAssignment {
+  /** Assigned routine identifier. */
+  routineId: string
+  /** Routine name, with a fallback for a previous trainer's routine. */
+  routineName: string
+  /** Formatted first day of the assignment. */
+  startDate: string
+  /** Formatted last day, or `null` while the assignment is open. */
+  endDate: string | null
+  /** Training days in Monday to Sunday order. */
+  trainingDays: TrainingDay[]
+  /** Whether this is the current assignment. */
+  current: boolean
 }
 
 /**
@@ -91,6 +111,8 @@ export interface ClientDetail extends ClientSummary {
   bodyProfile: BodyProfile
   /** Routine followed today, or `null` when there is none. */
   routine: CurrentRoutine | null
+  /** All assignments, newest first. */
+  assignments: ClientAssignment[]
 }
 
 /**

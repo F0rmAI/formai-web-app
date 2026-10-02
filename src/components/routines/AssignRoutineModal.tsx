@@ -6,9 +6,11 @@
  */
 
 import { useId, useState, type FormEvent } from 'react'
-import { Button, Checkbox, Modal, Text, TextField } from '@/components/ui'
+import { Button, Checkbox, Chip, Modal, Text, TextField } from '@/components/ui'
 import type { ClientSummary } from '@/types/client'
+import type { TrainingDay } from '@/types/routine'
 import { toIsoDate } from '@/utils/format'
+import { TRAINING_DAYS } from '@/utils/training-days'
 
 /** Says why a client stands out in the list: its current routine or why it cannot be chosen. */
 function toNote(client: ClientSummary): string {
@@ -35,8 +37,8 @@ export interface AssignRoutineModalProps {
   isSubmitting: boolean
   /** Message of the failed assignment. */
   error: string | null
-  /** Called with the selected clients and the start date, in `YYYY-MM-DD` format. */
-  onSubmit: (clients: ClientSummary[], startDate: string) => void
+  /** Called with selected clients, start date and training days. */
+  onSubmit: (clients: ClientSummary[], startDate: string, trainingDays: TrainingDay[]) => void
   /** Called when the user cancels or dismisses the modal. */
   onClose: () => void
 }
@@ -53,6 +55,8 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
   const formId = useId()
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [startDate, setStartDate] = useState(toIsoDate())
+  const [trainingDays, setTrainingDays] = useState<TrainingDay[]>([])
+  const [daysTouched, setDaysTouched] = useState(false)
 
   const selected = clients.filter((client) => selectedIds.includes(client.id))
   const blocked = selected.find((client) => client.status !== 'ACTIVE')
@@ -61,9 +65,17 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
   const toggle = (clientId: string, checked: boolean) =>
     setSelectedIds((current) => (checked ? [...current, clientId] : current.filter((id) => id !== clientId)))
 
+  const toggleDay = (day: TrainingDay) => {
+    setDaysTouched(true)
+    setTrainingDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day])
+  }
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (selected.length > 0 && !blocked && startDate) onSubmit(selected, startDate)
+    setDaysTouched(true)
+    if (selected.length > 0 && !blocked && startDate && trainingDays.length > 0) {
+      onSubmit(selected, startDate, TRAINING_DAYS.map(({ day }) => day).filter((day) => trainingDays.includes(day)))
+    }
   }
 
   return (
@@ -83,7 +95,7 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
             type="submit"
             form={formId}
             loading={isSubmitting}
-            disabled={selected.length === 0 || Boolean(blocked) || !startDate}
+            disabled={selected.length === 0 || Boolean(blocked) || !startDate || trainingDays.length === 0}
           />
         </>
       }
@@ -117,6 +129,17 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
           onChange={(event) => setStartDate(event.target.value)}
           leadingIcon="calendar_month"
         />
+        <div role="group" aria-label="Días de entrenamiento" className="flex flex-col gap-md">
+          <Text variant="label-m">Días de entrenamiento</Text>
+          <div className="flex flex-wrap gap-sm">
+            {TRAINING_DAYS.map(({ day, label }) => (
+              <Chip key={day} label={label} selected={trainingDays.includes(day)} onClick={() => toggleDay(day)} />
+            ))}
+          </div>
+          {(daysTouched || selected.length > 0) && trainingDays.length === 0 && (
+            <Text role="alert" variant="body-m" tone="error">Selecciona al menos un día de entrenamiento.</Text>
+          )}
+        </div>
       </form>
     </Modal>
   )

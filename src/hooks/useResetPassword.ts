@@ -69,10 +69,11 @@ export function useResetPassword(token: string | null) {
       const state: ToastLocationState = { toast: 'Contraseña actualizada' }
       navigate(ROUTES.login, { replace: true, state })
     } catch (error) {
-      // The backend answers 422 both for a weak password and for a link that expired or was used.
-      // The password already passed the local rule, so a 422 here means the link is not valid.
-      if (error instanceof ApiError && [400, 404, 410, 422].includes(error.status)) {
+      // A locally valid password makes a 422 indicate an invalid, expired or used token.
+      if (error instanceof ApiError && error.status === 422) {
         setIsLinkExpired(true)
+      } else if (error instanceof ApiError && error.status === 400) {
+        setErrors({ confirmPassword: 'Completa los campos obligatorios e inténtalo de nuevo.' })
       } else {
         setErrors({ confirmPassword: 'No pudimos guardar la contraseña. Inténtalo de nuevo.' })
       }

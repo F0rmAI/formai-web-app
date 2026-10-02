@@ -29,6 +29,7 @@ export interface FakeRequest {
  * @returns The response, with the problem content type for failures, as the backend sends them.
  */
 export function jsonResponse(body: unknown, status = 200): Response {
+  if (status === 500) return new Response('Unexpected error', { status, headers: { 'content-type': 'text/plain' } })
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
     headers: status === 204 ? {} : { 'content-type': status >= 400 ? 'application/problem+json' : 'application/json' },

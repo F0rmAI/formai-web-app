@@ -90,6 +90,8 @@ export interface ExerciseMetric {
  * Describes the adherence of a client in a period.
  */
 export interface ProgressReport {
+  /** Whether the period has data to display. */
+  hasData: boolean
   /** Share of scheduled sessions the client trained, from `0` to `100`. */
   adherencePercentage: number
   /** Sessions scheduled in the period. */

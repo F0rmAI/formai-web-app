@@ -21,6 +21,8 @@ export interface ClientOutletContext {
   isSavingProfile: boolean
   /** Message of the failed save of the body profile. */
   profileError: string | null
+  /** Profile field rejected by the backend, when available. */
+  profileErrorField: 'goal' | 'height' | 'weight' | null
   /** Clears the message of the failed save. */
   resetProfileError: () => void
   /** Shows a short message over the page. */

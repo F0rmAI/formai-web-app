@@ -50,6 +50,7 @@ interface WorkoutSessionPageResource {
 }
 
 interface ProgressReportResource {
+  hasData: boolean
   adherencePercentage: number
   scheduled: number
   completed: number
@@ -188,6 +189,7 @@ export const workoutsService = {
         { signal },
       )
       return {
+        hasData: report.hasData,
         adherencePercentage: Number(report.adherencePercentage) || 0,
         scheduled: report.scheduled,
         completed: report.completed,

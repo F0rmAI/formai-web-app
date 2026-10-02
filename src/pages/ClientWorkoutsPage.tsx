@@ -68,8 +68,8 @@ export function ClientWorkoutsPage() {
           {toUpdatedLabel(lastSyncedAt)}
         </Text>
         <Button
-          label="Registrar entrenamiento"
-          icon="add"
+          label="Actualizar"
+          icon="refresh"
           variant="secondary"
           size="sm"
           loading={isSyncing}

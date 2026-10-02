@@ -63,6 +63,7 @@ describe('workoutsService', () => {
         completed: 20,
         partial: 2,
         skipped: 2,
+        hasData: true,
         exercises: [{ exerciseId: 'e1', exerciseName: 'Press', firstMaxLoadKg: '30', lastMaxLoadKg: '34', firstVolumeKg: '2980', lastVolumeKg: '3840' }],
       },
     })
@@ -70,7 +71,7 @@ describe('workoutsService', () => {
     const report = await workoutsService.getProgressReport('c1', '2026-08-01', '2026-09-25')
 
     expect(requests[0].path).toBe('/v1/clients/c1/progress-reports?from=2026-08-01&to=2026-09-25')
-    expect(report).toMatchObject({ adherencePercentage: 83.33, scheduled: 24 })
+    expect(report).toMatchObject({ adherencePercentage: 83.33, scheduled: 24, hasData: true })
     expect(report.exercises[0]).toMatchObject({ firstMaxLoadKg: 30, lastVolumeKg: 3840 })
   })
 
@@ -83,6 +84,15 @@ describe('workoutsService', () => {
 
     expect(requests[0].path).toBe('/v1/clients/c1/progress-charts?exerciseId=e1&weeks=8')
     expect(chart).toEqual({ enoughData: true, points: [{ date: '2026-09-01', maxLoadKg: 30, volumeKg: 2980 }] })
+  })
+
+  it('preserves the backend hasData flag for an empty period', async () => {
+    stubBackend({ 'GET /v1/clients/c1/progress-reports': {
+      hasData: false, adherencePercentage: 0, scheduled: 0, completed: 0, partial: 0, skipped: 0, exercises: [],
+    } })
+
+    await expect(workoutsService.getProgressReport('c1', '2026-09-01', '2026-09-30'))
+      .resolves.toMatchObject({ hasData: false, exercises: [] })
   })
 
   it('reports a rejected period', async () => {

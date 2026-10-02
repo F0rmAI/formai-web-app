@@ -5,8 +5,9 @@ Inter-session project memory. This file contains about 50 lines: summarize or re
 ## Current status (2026-10-02)
 - `develop` holds the MVP (TB1) of the trainer web: flows W1 access, W2 clients, W3 tracking, W4 exercises and W5 routines, every frame of the Figma page `formai_web_mockup` up to 5.12. `main` (5 local commits, not pushed) and every feature branch are merged into it.
 - Session handling (US-002) aligns with the backend: initial `403` renews and retries; missing stored user restores from the refresh cookie before guards decide. Validation caps the sign-up name at 120 characters.
-- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings on 2026-10-01. On `feature/api-alignment`, 199 tests pass; lint, typecheck and build are clean (2026-10-02).
+- Frontend audit (`qs-react-frontend`): 0 errors, 0 warnings on 2026-10-01. On `feature/api-alignment`, P3/P5 API alignment is uncommitted; 223 tests pass and lint/typecheck are clean (2026-10-02).
 - P2/P4 API alignment on `feature/api-alignment` (uncommitted): client registration sends only `fullName`; invited clients can have null email; detail supports rename; unused exercises can be deleted.
+- P3/P5 API alignment: assignments send chosen weekdays, CLOSED routines can reopen, replacement uses the current assignment id, and failed assignments refetch because writes are not atomic. Client profiles show assignment days/history; progress uses `hasData`; workouts action is “Actualizar”.
 - The five flows were run in a browser against a local `formai-api` on 2026-10-01 (accounts `qa.trainer.*@formai.test` were left in the local database).
 - Not built: W6 recognition report and W7 machine catalog (TB2, admin role). The backend has no endpoints for them, except `PUT /exercises/{id}/machine-link`.
 
@@ -14,6 +15,7 @@ Inter-session project memory. This file contains about 50 lines: summarize or re
 - React 19.3.0 and Tailwind 4.3.3 pinned exactly: versions required by the project owner.
 - One file per resource in `services/` and a single `ServiceError`: the `contract/http/service` trio and `src/mocks` only existed to swap a mock adapter that no longer runs.
 - Backend error details are never shown: they are English and written for developers. Each service defines the Spanish message.
+- Auth and profile validation use backend status and `field`; password length is 8–128, sign-in lockout reads `lockedUntil`, and 500 responses are plain text.
 - `useAsyncData` / `useAsyncAction` under every data hook: one place for cancellation, loading and error handling, and no `try/catch` in pages or components.
 - Column widths, modal width, table actions and the filter bar live in `components/layout` and `components/ui`: pages and feature components carry no arbitrary values or loose measures.
 - Route guards and the route tree live in `src/navigation`: a component must not read `context`.
