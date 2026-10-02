@@ -6,7 +6,7 @@
  */
 
 import type { AuthRole, AuthUser, PasswordResetInput, SignInInput, SignUpInput } from '@/types/auth'
-import { apiClient } from './api-client'
+import { apiClient, markSessionEstablished, restoreSession } from './api-client'
 
 interface AuthenticatedUserResource {
   id: string
@@ -25,6 +25,15 @@ const PUBLIC = { skipUnauthorizedHandler: true } as const
  * The session travels in `httpOnly` cookies set by the backend; no token is handled here.
  */
 export const authService = {
+  /**
+   * Restores a session from the refresh cookie when no user is stored locally.
+   *
+   * @returns The authenticated user, or `null` when the refresh cookie cannot renew the session.
+   */
+  restoreSession(): Promise<AuthUser | null> {
+    return restoreSession()
+  },
+
   /**
    * Creates a trainer account. It does not sign the account in.
    *
@@ -50,6 +59,7 @@ export const authService = {
       { ...input, application: 'WEB_PLATFORM' },
       PUBLIC,
     )
+    markSessionEstablished()
     return { id: user.id, email: user.email, roles: user.roles as AuthRole[], status: user.status, fullName }
   },
 

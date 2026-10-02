@@ -37,7 +37,9 @@ function writeStoredUser(user: AuthUser | null) {
  * Clears the session when the HTTP client reports that it expired and could not be renewed.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(readStoredUser)
+  const [initialUser] = useState(readStoredUser)
+  const [user, setUser] = useState<AuthUser | null>(initialUser)
+  const [isRestoring, setIsRestoring] = useState(!initialUser)
 
   const store = useCallback((next: AuthUser | null) => {
     writeStoredUser(next)
@@ -48,6 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => store(null))
     return () => setUnauthorizedHandler(null)
   }, [store])
+
+  useEffect(() => {
+    if (initialUser) return
+    let active = true
+    void authService.restoreSession().then((restored) => {
+      if (active && restored) store(restored)
+    }).finally(() => {
+      if (active) setIsRestoring(false)
+    })
+    return () => { active = false }
+  }, [initialUser, store])
 
   const login = useCallback(
     async (input: SignInInput, fullName?: string) => {
@@ -75,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [store])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: Boolean(user), login, register, logout }),
-    [user, login, register, logout],
+    () => ({ user, isAuthenticated: Boolean(user), isRestoring, login, register, logout }),
+    [user, isRestoring, login, register, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

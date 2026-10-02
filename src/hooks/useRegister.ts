@@ -11,7 +11,7 @@ import { useAuth } from '@/context/useAuth'
 import { ROUTES } from '@/navigation/routes'
 import { ApiError } from '@/services/api-client'
 import { firstName } from '@/utils/format'
-import { emailFormatError, passwordError } from '@/utils/validation'
+import { emailFormatError, fullNameError, passwordError } from '@/utils/validation'
 import type { ToastLocationState } from './useToast'
 
 /** Values of the sign-up form. */
@@ -52,7 +52,7 @@ export function useRegister() {
 
   async function submit() {
     const invalid: RegisterErrors = {
-      fullName: fields.fullName.trim() ? undefined : 'Ingresa tu nombre completo',
+      fullName: fullNameError(fields.fullName),
       email: emailFormatError(fields.email),
       password: passwordError(fields.password),
     }

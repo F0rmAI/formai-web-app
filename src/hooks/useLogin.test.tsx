@@ -26,6 +26,7 @@ const user: AuthUser = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER']
 const auth: AuthContextValue = {
   user: null,
   isAuthenticated: false,
+  isRestoring: false,
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
@@ -106,6 +107,19 @@ describe('useLogin', () => {
 })
 
 describe('useRegister', () => {
+  it('rejects a name longer than the backend limit', async () => {
+    const { result } = renderHook(() => useRegister(), { wrapper: withSession('/register') })
+    act(() => {
+      result.current.update('fullName', 'A'.repeat(121))
+      result.current.update('email', 'carla@formai.app')
+      result.current.update('password', 'entrena2026')
+    })
+
+    await act(() => result.current.submit())
+
+    expect(result.current.errors.fullName).toBe('El nombre completo debe tener 120 caracteres como máximo.')
+    expect(auth.register).not.toHaveBeenCalled()
+  })
   /** Fills the form with valid values, overriding the given ones. */
   function fill(result: { current: ReturnType<typeof useRegister> }, password = 'entrena2026') {
     act(() => {

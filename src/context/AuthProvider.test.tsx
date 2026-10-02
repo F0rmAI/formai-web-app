@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authService } from '@/services/auth.service'
 import type { AuthUser } from '@/types/auth'
@@ -13,7 +13,7 @@ import { AuthProvider } from './AuthProvider'
 import { useAuth } from './useAuth'
 
 vi.mock('@/services/auth.service', () => ({
-  authService: { signIn: vi.fn(), signUp: vi.fn(), signOut: vi.fn() },
+  authService: { restoreSession: vi.fn(), signIn: vi.fn(), signUp: vi.fn(), signOut: vi.fn() },
 }))
 
 const user: AuthUser = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' }
@@ -21,15 +21,37 @@ const user: AuthUser = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER']
 describe('AuthProvider', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    vi.mocked(authService.restoreSession).mockReset().mockResolvedValue(null)
     vi.mocked(authService.signIn).mockReset().mockResolvedValue(user)
     vi.mocked(authService.signUp).mockReset().mockResolvedValue()
     vi.mocked(authService.signOut).mockReset().mockResolvedValue()
   })
 
-  it('starts without a session', () => {
+  it('starts restoring when no user is stored and stays signed out if it fails', async () => {
+    let finish!: (value: AuthUser | null) => void
+    vi.mocked(authService.restoreSession).mockReturnValue(new Promise((resolve) => { finish = resolve }))
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-    expect(result.current).toMatchObject({ user: null, isAuthenticated: false })
+    expect(result.current).toMatchObject({ user: null, isAuthenticated: false, isRestoring: true })
+    await act(async () => { finish(null) })
+    expect(result.current.isRestoring).toBe(false)
+  })
+
+  it('restores and stores the user when a refresh cookie is valid', async () => {
+    vi.mocked(authService.restoreSession).mockResolvedValue(user)
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    await waitFor(() => expect(result.current.isRestoring).toBe(false))
+    expect(result.current).toMatchObject({ user, isAuthenticated: true })
+    expect(JSON.parse(sessionStorage.getItem('formai.auth.user') ?? 'null')).toEqual(user)
+  })
+
+  it('keeps a stored user without requesting restoration', () => {
+    sessionStorage.setItem('formai.auth.user', JSON.stringify(user))
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    expect(result.current).toMatchObject({ user, isAuthenticated: true, isRestoring: false })
+    expect(authService.restoreSession).not.toHaveBeenCalled()
   })
 
   it('signs in and keeps the user after a reload', async () => {

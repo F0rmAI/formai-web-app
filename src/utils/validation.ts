@@ -23,6 +23,19 @@ export function emailFormatError(email: string): string | undefined {
 }
 
 /**
+ * Validates the trainer's full name against the backend limit.
+ *
+ * @param fullName - Text typed in the full-name field.
+ * @returns The Spanish error message, or `undefined` when the name is valid.
+ */
+export function fullNameError(fullName: string): string | undefined {
+  const trimmed = fullName.trim()
+  if (!trimmed) return 'Ingresa tu nombre completo'
+  if (trimmed.length > 120) return 'El nombre completo debe tener 120 caracteres como máximo.'
+  return undefined
+}
+
+/**
  * Validates that a password has at least 8 characters, with letters and numbers.
  *
  * @param password - Text typed in the password field.

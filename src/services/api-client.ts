@@ -6,6 +6,7 @@
  */
 
 import { API_URL } from './config'
+import type { AuthUser } from '@/types/auth'
 
 /**
  * Picks the most useful message from an error body in problem-detail format.
@@ -57,7 +58,7 @@ interface RequestOptions {
   headers?: Record<string, string>
   /** Signal used to cancel the request. */
   signal?: AbortSignal
-  /** When `true`, a `401` response does not run the unauthorized handler (public auth routes). */
+  /** When `true`, a `401` or `403` response does not renew the session (public auth routes). */
   skipUnauthorizedHandler?: boolean
 }
 
@@ -83,7 +84,9 @@ type UnauthorizedHandler = () => void
 const REFRESH_PATH = '/v1/authentication/refresh'
 
 let onUnauthorized: UnauthorizedHandler | null = null
-let refreshing: Promise<boolean> | null = null
+let refreshing: Promise<AuthUser | null> | null = null
+let refreshGeneration = 0
+let refreshBlocked = false
 
 /**
  * Registers the callback run when the session expired and could not be renewed.
@@ -94,15 +97,35 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   onUnauthorized = handler
 }
 
+/** Allows a new refresh after sign-in sets a new refresh cookie. */
+export function markSessionEstablished() {
+  refreshBlocked = false
+  refreshGeneration += 1
+}
+
 /**
- * Renews the session cookies. Concurrent callers share one request.
+ * Restores the user and renews the session cookies. Concurrent callers share one request.
  *
- * @returns Whether the session was renewed.
+ * @returns The authenticated user, or `null` when the refresh cookie is invalid or absent.
  */
-function refreshSession(): Promise<boolean> {
+export function restoreSession(): Promise<AuthUser | null> {
+  if (refreshBlocked) return Promise.resolve(null)
   refreshing ??= fetch(`${API_URL}${REFRESH_PATH}`, { method: 'POST', credentials: 'include' })
-    .then((response) => response.ok)
-    .catch(() => false)
+    .then(async (response) => {
+      if (!response.ok) return null
+      const data = parseJson(await response.text())
+      if (!data || typeof data !== 'object') return null
+      const user = data as Partial<AuthUser>
+      if (typeof user.id !== 'string' || typeof user.email !== 'string' ||
+          !Array.isArray(user.roles) || typeof user.status !== 'string') return null
+      return { id: user.id, email: user.email, roles: user.roles, status: user.status } as AuthUser
+    })
+    .catch(() => null)
+    .then((user) => {
+      if (user) refreshGeneration += 1
+      else refreshBlocked = true
+      return user
+    })
     .finally(() => {
       refreshing = null
     })
@@ -113,8 +136,10 @@ function refreshSession(): Promise<boolean> {
  * Sends a JSON request to the backend and parses the response.
  *
  * @remarks
- * When the access cookie expired (`401`), the session is renewed once and the request is sent
- * again; if the renewal fails, the unauthorized handler runs.
+ * A protected route can answer `403` when the access cookie is missing or expired. On an initial
+ * `401` or `403`, one shared refresh renews the cookies and the request is retried. A failed
+ * refresh or a retried `401` runs the unauthorized handler; a retried `403` is forbidden and does
+ * not clear the valid session. Public auth requests skip renewal.
  *
  * @typeParam T - Shape of the response body.
  * @param method - HTTP method.
@@ -126,6 +151,7 @@ function refreshSession(): Promise<boolean> {
  */
 async function request<T>(method: HttpMethod, path: string, options: RequestOptions = {}, retried = false): Promise<T> {
   const { body, headers, signal, skipUnauthorizedHandler } = options
+  const generationAtStart = refreshGeneration
 
   const response = await fetch(`${API_URL}${path}`, {
     method,
@@ -144,9 +170,14 @@ async function request<T>(method: HttpMethod, path: string, options: RequestOpti
   const data = isJson ? parseJson(await response.text()) : undefined
 
   if (!response.ok) {
-    if (response.status === 401 && !skipUnauthorizedHandler) {
-      if (!retried && (await refreshSession())) return request<T>(method, path, options, true)
-      onUnauthorized?.()
+    if (!skipUnauthorizedHandler && (response.status === 401 || response.status === 403)) {
+      if (!retried) {
+        if (generationAtStart !== refreshGeneration) return request<T>(method, path, options, true)
+        if (await restoreSession()) return request<T>(method, path, options, true)
+        onUnauthorized?.()
+      } else if (response.status === 401) {
+        onUnauthorized?.()
+      }
     }
     throw new ApiError(response.status, problemDetailMessage(data, `${method} ${path} → ${response.status}`), data)
   }
