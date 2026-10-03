@@ -1,16 +1,40 @@
+/**
+ * Chip primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import type { ButtonHTMLAttributes } from 'react'
 import type { IconName } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { Icon } from './Icon'
 import { Text } from './Text'
 
+/**
+ * Props accepted by {@link Chip}.
+ */
 export interface ChipProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  /** Text of the chip. */
   label: string
+  /**
+   * Whether the chip is selected.
+   *
+   * @defaultValue `false`
+   */
   selected?: boolean
+  /** Icon rendered before the label. */
   icon?: IconName
 }
 
-/** Chip seleccionable. */
+/**
+ * Renders a selectable chip.
+ *
+ * @example
+ * ```tsx
+ * <Chip label="Upper body" selected={isSelected} onClick={toggle} />
+ * ```
+ */
 export function Chip({ label, selected = false, icon, type = 'button', className, ...props }: ChipProps) {
   return (
     <button

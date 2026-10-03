@@ -6,7 +6,7 @@ rol (Entrenador / Administrador / Cliente), preferencias, toasts globales.
 ## Reglas
 
 - Solo estado verdaderamente global. Si lo usa una sola página, va en un hook.
-- Un archivo por contexto: `AuthContext.tsx` exporta `AuthProvider` y el hook `useAuth()`.
+- La sesión vive en tres archivos, para que el archivo del provider solo exporte un componente (fast refresh): `auth-context.ts` (objeto de contexto y tipo), `AuthProvider.tsx` (provider) y `useAuth.ts` (hook de acceso).
 - El provider se monta en `App.tsx`.
 - La lógica de red se delega en `services/` (el contexto solo guarda el resultado).
 
@@ -17,9 +17,9 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function useAuth() {
   const value = useContext(AuthContext)
-  if (!value) throw new Error('useAuth debe usarse dentro de <AuthProvider>')
+  if (!value) throw new Error('useAuth must be used inside <AuthProvider>')
   return value
 }
 ```
 
-La base aún no tiene contextos: se crean con la primera feature que los necesite (p. ej. autenticación).
+`AuthProvider` guarda solo el perfil público del usuario en `sessionStorage` para sobrevivir a una recarga; la credencial viaja en cookies `httpOnly` que la página no puede leer.

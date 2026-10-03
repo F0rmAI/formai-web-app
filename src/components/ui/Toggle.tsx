@@ -1,15 +1,40 @@
+/**
+ * Toggle primitive of the design system.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
 import { cn } from '@/utils/cn'
 
+/**
+ * Props accepted by {@link Toggle}.
+ */
 export interface ToggleProps {
+  /** Whether the switch is on. */
   checked: boolean
+  /** Called with the new state. */
   onChange: (checked: boolean) => void
-  /** Texto accesible del interruptor. */
+  /** Accessible label of the switch. */
   label: string
+  /**
+   * Blocks interaction.
+   *
+   * @defaultValue `false`
+   */
   disabled?: boolean
+  /** Extra classes for layout adjustments from the parent. */
   className?: string
 }
 
-/** Interruptor on/off de 46×26. */
+/**
+ * Renders an on/off switch.
+ *
+ * @example
+ * ```tsx
+ * <Toggle label="Notifications" checked={enabled} onChange={setEnabled} />
+ * ```
+ */
 export function Toggle({ checked, onChange, label, disabled = false, className }: ToggleProps) {
   return (
     <button

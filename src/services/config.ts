@@ -1,2 +1,11 @@
-/** URL base del backend (Spring Boot detrás de Caddy en `/api`). Se define en `.env`. */
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api'
+/**
+ * Environment configuration of the services layer.
+ *
+ * @author G0nz4loQu3dena
+ * @packageDocumentation
+ */
+
+/**
+ * Base URL of the versioned backend API, without a trailing slash. Set through `VITE_API_URL`.
+ */
+export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
