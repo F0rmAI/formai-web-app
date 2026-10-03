@@ -25,7 +25,7 @@ describe('workoutsService', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('lists the sessions of a client newest first', async () => {
-    stubBackend({ 'GET /v1/clients/c1/workout-sessions': { content: [older, newer] } })
+    stubBackend({ 'GET /clients/c1/workout-sessions': { content: [older, newer] } })
 
     const sessions = await workoutsService.list('c1')
 
@@ -35,7 +35,7 @@ describe('workoutsService', () => {
   })
 
   it('reads one session from the history of the client', async () => {
-    stubBackend({ 'GET /v1/clients/c1/workout-sessions': { content: [older, newer] } })
+    stubBackend({ 'GET /clients/c1/workout-sessions': { content: [older, newer] } })
 
     const session = await workoutsService.getById('c1', 's1')
 
@@ -44,20 +44,20 @@ describe('workoutsService', () => {
   })
 
   it('reports a session that is not in the history', async () => {
-    stubBackend({ 'GET /v1/clients/c1/workout-sessions': { content: [older] } })
+    stubBackend({ 'GET /clients/c1/workout-sessions': { content: [older] } })
 
     await expect(workoutsService.getById('c1', 'zz')).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' })
   })
 
   it('reports a client of another trainer', async () => {
-    stubBackend({ 'GET /v1': { status: 403 } })
+    stubBackend({ 'GET /': { status: 403 } })
 
     await expect(workoutsService.list('c9')).rejects.toMatchObject({ code: 'CLIENT_NOT_FOUND' })
   })
 
   it('fetches the progress report of a period', async () => {
     const requests = stubBackend({
-      'GET /v1/clients/c1/progress-reports': {
+      'GET /clients/c1/progress-reports': {
         adherencePercentage: '83.33',
         scheduled: 24,
         completed: 20,
@@ -70,24 +70,24 @@ describe('workoutsService', () => {
 
     const report = await workoutsService.getProgressReport('c1', '2026-08-01', '2026-09-25')
 
-    expect(requests[0].path).toBe('/v1/clients/c1/progress-reports?from=2026-08-01&to=2026-09-25')
+    expect(requests[0].path).toBe('/clients/c1/progress-reports?from=2026-08-01&to=2026-09-25')
     expect(report).toMatchObject({ adherencePercentage: 83.33, scheduled: 24, hasData: true })
     expect(report.exercises[0]).toMatchObject({ firstMaxLoadKg: 30, lastVolumeKg: 3840 })
   })
 
   it('fetches the evolution of an exercise', async () => {
     const requests = stubBackend({
-      'GET /v1/clients/c1/progress-charts': { enoughData: true, points: [{ date: '2026-09-01', maxLoadKg: '30', volumeKg: '2980' }] },
+      'GET /clients/c1/progress-charts': { enoughData: true, points: [{ date: '2026-09-01', maxLoadKg: '30', volumeKg: '2980' }] },
     })
 
     const chart = await workoutsService.getProgressChart('c1', 'e1', 8)
 
-    expect(requests[0].path).toBe('/v1/clients/c1/progress-charts?exerciseId=e1&weeks=8')
+    expect(requests[0].path).toBe('/clients/c1/progress-charts?exerciseId=e1&weeks=8')
     expect(chart).toEqual({ enoughData: true, points: [{ date: '2026-09-01', maxLoadKg: 30, volumeKg: 2980 }] })
   })
 
   it('preserves the backend hasData flag for an empty period', async () => {
-    stubBackend({ 'GET /v1/clients/c1/progress-reports': {
+    stubBackend({ 'GET /clients/c1/progress-reports': {
       hasData: false, adherencePercentage: 0, scheduled: 0, completed: 0, partial: 0, skipped: 0, exercises: [],
     } })
 
@@ -96,7 +96,7 @@ describe('workoutsService', () => {
   })
 
   it('reports a rejected period', async () => {
-    stubBackend({ 'GET /v1': { status: 400 } })
+    stubBackend({ 'GET /': { status: 400 } })
 
     await expect(workoutsService.getProgressReport('c1', 'x', 'y')).rejects.toMatchObject({ code: 'INVALID_RANGE' })
   })

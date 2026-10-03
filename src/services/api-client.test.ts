@@ -42,6 +42,7 @@ describe('apiClient', () => {
       `${API_URL}/items`,
       expect.objectContaining({ method: 'GET', body: undefined }),
     )
+    expect(new URL(String(fetchMock.mock.calls[0][0])).pathname).toBe('/api/v1/items')
   })
 
   it('serializes the body and sets the JSON content type on POST', async () => {
@@ -96,9 +97,10 @@ describe('apiClient', () => {
     await expect(apiClient.get('/items')).resolves.toEqual([{ id: '1' }])
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       `${API_URL}/items`,
-      `${API_URL}/v1/authentication/refresh`,
+      `${API_URL}/authentication/refresh`,
       `${API_URL}/items`,
     ])
+    expect(new URL(String(fetchMock.mock.calls[1][0])).pathname).toBe('/api/v1/authentication/refresh')
   })
 
   it.each([401, 403])('runs the unauthorized handler when a %i cannot be renewed', async (status) => {

@@ -3,12 +3,13 @@
 Inter-session project memory. Keep this file concise (about 50 lines); remove stale details.
 
 ## Current status (2026-10-02)
-- `feature/api-alignment` is not merged. It aligns the trainer web MVP (TP) with `formai-api` `main`, spec 0.4.0.
+- The trainer web MVP (TP) is integrated with `formai-api` and ready for its first web release, `v0.1.0`.
 - Flows W1–W5 (access, clients, tracking, exercises, routines) ran in a browser against a local `formai-api` on 2026-10-02. Accounts `qa.trainer.*` and `qa.client.*` remain in the local database.
 - Frontend audit: 0 errors. W6 recognition report and W7 machine catalog, including the Administrator role, belong to TB2.
 
 ## Decisions (and why)
 - React 19.3.0 and Tailwind 4.3.3 are pinned exactly as required by the owner.
+- `VITE_API_URL` includes `/api/v1`; service and refresh paths begin at the resource. `.env.production` targets `https://formai-api.quedena.studio/api/v1`; Vite embeds it at build time. Never put secrets in `VITE_*` values.
 - The UI follows App → Pages → Components and Pages → Hooks → Services → API; `useAsyncData` / `useAsyncAction` centralize data state and errors.
 - Services translate backend errors into Spanish `ServiceError` messages; raw English backend details are not shown to users.
 - One service file per resource and a single `ServiceError` replaced the old mock adapter layers, which no longer run.
@@ -43,6 +44,6 @@ Inter-session project memory. Keep this file concise (about 50 lines); remove st
 - Exercise usage comes from routine list requests and can be unavailable; a displayed zero is not proof that deletion will succeed.
 
 ## Next steps
-- Merge `feature/api-alignment` into `develop`, then deploy the TP MVP.
+- Deploy the TP web app to its hosting service and bind `formai.quedena.studio`; the backend already accepts that CORS origin.
 - TB2: build W6 and W7 when `formai-api` exposes the recognition report and machine catalog.
 - Backend follow-ups: return trainer name on sign-in, correct `client-overviews` after deactivation, and expose routine clients and exercise usage counts directly.

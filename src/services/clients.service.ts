@@ -155,7 +155,7 @@ function toBodyProfile(profile: BodyProfileResource | null): BodyProfile {
 /** Reads the body profile; a client without one is not an error. */
 async function getBodyProfile(clientId: string, signal?: AbortSignal): Promise<BodyProfileResource | null> {
   try {
-    return await apiClient.get<BodyProfileResource>(`/v1/clients/${clientId}/body-profile`, { signal })
+    return await apiClient.get<BodyProfileResource>(`/clients/${clientId}/body-profile`, { signal })
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null
     throw error
@@ -167,7 +167,7 @@ async function getCurrentRoutine(assignments: AssignmentResource[], signal?: Abo
   const current = assignments.find((assignment) => assignment.current)
   if (!current) return null
   const routine = await apiClient
-    .get<RoutineVersionHolder>(`/v1/routines/${current.routineId}`, { signal })
+    .get<RoutineVersionHolder>(`/routines/${current.routineId}`, { signal })
     .catch(() => null)
   return {
     id: current.routineId,
@@ -202,7 +202,7 @@ export const clientsService = {
   /** Reads the current assignment of one selected client before replacing a routine. */
   async getCurrentAssignment(clientId: string, signal?: AbortSignal): Promise<{ routineId: string; routineName: string } | null> {
     try {
-      const assignments = await apiClient.get<AssignmentResource[]>(`/v1/clients/${clientId}/assignments`, { signal })
+      const assignments = await apiClient.get<AssignmentResource[]>(`/clients/${clientId}/assignments`, { signal })
       const current = assignments.find((assignment) => assignment.current)
       return current ? { routineId: current.routineId, routineName: current.routineName?.trim() || 'Rutina de otro entrenador' } : null
     } catch (error) {
@@ -222,8 +222,8 @@ export const clientsService = {
     const query = toQuery(search, status)
     try {
       const [clients, overviews] = await Promise.all([
-        apiClient.get<ClientPageResource>(`/v1/clients${query}`, { signal }),
-        apiClient.get<ClientOverviewPageResource>(`/v1/client-overviews${query}`, { signal }),
+        apiClient.get<ClientPageResource>(`/clients${query}`, { signal }),
+        apiClient.get<ClientOverviewPageResource>(`/client-overviews${query}`, { signal }),
       ])
       const overviewById = new Map(overviews.content.map((overview) => [overview.clientId, overview]))
       const summaries = clients.content.map((client) => toSummary(client, overviewById.get(client.id)))
@@ -245,10 +245,10 @@ export const clientsService = {
   async getById(clientId: string, signal?: AbortSignal): Promise<ClientDetail> {
     try {
       const [client, profile, assignments, overviews] = await Promise.all([
-        apiClient.get<ClientResource>(`/v1/clients/${clientId}`, { signal }),
+        apiClient.get<ClientResource>(`/clients/${clientId}`, { signal }),
         getBodyProfile(clientId, signal),
-        apiClient.get<AssignmentResource[]>(`/v1/clients/${clientId}/assignments`, { signal }),
-        apiClient.get<ClientOverviewPageResource>(`/v1/client-overviews?size=${PAGE_SIZE}`, { signal }),
+        apiClient.get<AssignmentResource[]>(`/clients/${clientId}/assignments`, { signal }),
+        apiClient.get<ClientOverviewPageResource>(`/client-overviews?size=${PAGE_SIZE}`, { signal }),
       ])
       const routine = await getCurrentRoutine(assignments, signal)
       const overview = overviews.content.find((item) => item.clientId === clientId)
@@ -273,7 +273,7 @@ export const clientsService = {
    */
   async register(input: RegisterClientInput): Promise<ActivationCode> {
     try {
-      const created = await apiClient.post<RegisteredClientResource>('/v1/clients', input)
+      const created = await apiClient.post<RegisteredClientResource>('/clients', input)
       rememberExpiration(created.id, created.activationCodeExpiresAt)
       return {
         clientId: created.id,
@@ -296,7 +296,7 @@ export const clientsService = {
    */
   async rename(clientId: string, fullName: string): Promise<ClientResource> {
     try {
-      return await apiClient.put<ClientResource>(`/v1/clients/${clientId}`, { fullName: fullName.trim() })
+      return await apiClient.put<ClientResource>(`/clients/${clientId}`, { fullName: fullName.trim() })
     } catch (error) {
       throwServiceError<ClientsErrorCode>(error, { 400: INVALID_NAME, 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
     }
@@ -312,8 +312,8 @@ export const clientsService = {
   async regenerateCode(clientId: string): Promise<ActivationCode> {
     try {
       const [code, client] = await Promise.all([
-        apiClient.post<ActivationCodeResource>(`/v1/clients/${clientId}/activation-codes`),
-        apiClient.get<ClientResource>(`/v1/clients/${clientId}`),
+        apiClient.post<ActivationCodeResource>(`/clients/${clientId}/activation-codes`),
+        apiClient.get<ClientResource>(`/clients/${clientId}`),
       ])
       rememberExpiration(code.clientId, code.expiresAt)
       return {
@@ -335,7 +335,7 @@ export const clientsService = {
    */
   async deactivate(clientId: string): Promise<void> {
     try {
-      await apiClient.post(`/v1/clients/${clientId}/deactivations`)
+      await apiClient.post(`/clients/${clientId}/deactivations`)
     } catch (error) {
       throwServiceError<ClientsErrorCode>(error, { 403: NOT_FOUND, 404: NOT_FOUND }, UNEXPECTED)
     }
@@ -350,7 +350,7 @@ export const clientsService = {
    */
   async updateBodyProfile(clientId: string, input: UpdateBodyProfileInput): Promise<void> {
     try {
-      await apiClient.put(`/v1/clients/${clientId}/body-profile`, {
+      await apiClient.put(`/clients/${clientId}/body-profile`, {
         goal: input.goal,
         heightCm: input.height,
         weightKg: input.weight,

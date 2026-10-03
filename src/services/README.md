@@ -1,14 +1,14 @@
 # `services/` — Acceso al backend
 
-Única capa que **habla con la API** de FormAI (Spring Boot detrás de Caddy en `/api`). Traduce
+Única capa que **habla con la API** de FormAI (`VITE_API_URL`, incluida la versión `/api/v1`). Traduce
 llamadas HTTP a funciones tipadas que consumen los hooks.
 
 ## Contenido
 
 | Archivo | Uso |
 |---|---|
-| `config.ts` | URL base del backend, tomada de `VITE_API_URL` (ver `.env.example`). |
-| `api-client.ts` | Cliente `fetch` único (`apiClient.get/post/put/patch/delete`) con JSON y `ApiError` tipado. Comparte una sola renovación ante un `401` o `403` inicial (`/v1/authentication/refresh`) y avisa al contexto si no puede. |
+| `config.ts` | URL base versionada del backend, tomada de `VITE_API_URL` (ver `.env.example` y `.env.production`). |
+| `api-client.ts` | Cliente `fetch` único (`apiClient.get/post/put/patch/delete`) con JSON y `ApiError` tipado. Comparte una sola renovación ante un `401` o `403` inicial (`/authentication/refresh`) y avisa al contexto si no puede. |
 | `service-error.ts` | `ServiceError` (código de dominio + mensaje en español listo para mostrar) y `throwServiceError`, que traduce un estado HTTP a ese error. |
 | `auth.service.ts` | Registro, inicio y cierre de sesión, recuperación de contraseña. |
 | `clients.service.ts` | Clientes del entrenador: listado, ficha, alta, cambio de nombre, código de activación, desactivación. |
