@@ -15,15 +15,15 @@ describe('authService', () => {
 
   it('restores the authenticated user with one body-free refresh request', async () => {
     const user = { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' }
-    const requests = stubBackend({ 'POST /v1/authentication/refresh': user })
+    const requests = stubBackend({ 'POST /authentication/refresh': user })
 
     await expect(authService.restoreSession()).resolves.toEqual(user)
-    expect(requests).toEqual([{ method: 'POST', path: '/v1/authentication/refresh', body: undefined }])
+    expect(requests).toEqual([{ method: 'POST', path: '/authentication/refresh', body: undefined }])
   })
 
   it('signs in to the web platform and returns the user with the given name', async () => {
     const requests = stubBackend({
-      'POST /v1/authentication/sign-in': { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' },
+      'POST /authentication/sign-in': { id: 'u1', email: 'carla@formai.app', roles: ['TRAINER'], status: 'ACTIVE' },
     })
 
     const user = await authService.signIn({ email: 'carla@formai.app', password: 'entrena2026' }, 'Carla Ríos')
@@ -33,7 +33,7 @@ describe('authService', () => {
   })
 
   it('throws the API error for wrong credentials without trying to renew the session', async () => {
-    const requests = stubBackend({ 'POST /v1/authentication/sign-in': { status: 401, body: { detail: 'Invalid credentials' } } })
+    const requests = stubBackend({ 'POST /authentication/sign-in': { status: 401, body: { detail: 'Invalid credentials' } } })
 
     const error = await authService.signIn({ email: 'a@b.co', password: 'x' }).catch((reason: unknown) => reason)
 
@@ -43,7 +43,7 @@ describe('authService', () => {
   })
 
   it('sends the sign-up, sign-out and password recovery requests', async () => {
-    const requests = stubBackend({ 'POST /v1': {} })
+    const requests = stubBackend({ 'POST /': {} })
 
     await authService.signUp({ fullName: 'Carla Ríos', email: 'carla@formai.app', password: 'entrena2026' })
     await authService.requestPasswordReset('carla@formai.app')
@@ -51,10 +51,10 @@ describe('authService', () => {
     await authService.signOut()
 
     expect(requests.map((request) => request.path)).toEqual([
-      '/v1/authentication/sign-up',
-      '/v1/password-reset-requests',
-      '/v1/password-resets',
-      '/v1/authentication/sign-out',
+      '/authentication/sign-up',
+      '/password-reset-requests',
+      '/password-resets',
+      '/authentication/sign-out',
     ])
     expect(requests[1].body).toEqual({ email: 'carla@formai.app' })
     expect(requests[2].body).toEqual({ token: 't1', password: 'entrena2027' })

@@ -107,6 +107,10 @@ npm run dev              # http://localhost:5173
 Al iniciar verás la página de **inicio de sesión**. Con el backend (`formai-api`) en `http://localhost:8080`
 puedes crear una cuenta de entrenador y recorrer clientes, ejercicios y rutinas.
 
+`npm run build` usa `.env.production`: la URL base es `https://formai-api.quedena.studio/api/v1`.
+Los servicios agregan solo la ruta del recurso. `VITE_API_URL` puede sobrescribirse en el entorno
+de build si cambia el dominio del backend; Vite incorpora ese valor al bundle, no en tiempo de ejecución.
+
 | Script | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo con HMR. |

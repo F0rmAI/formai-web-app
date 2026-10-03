@@ -136,7 +136,7 @@ export const workoutsService = {
   async list(clientId: string, signal?: AbortSignal): Promise<WorkoutSessionSummary[]> {
     try {
       const page = await apiClient.get<WorkoutSessionPageResource>(
-        `/v1/clients/${clientId}/workout-sessions?page=0&size=${PAGE_SIZE}`,
+        `/clients/${clientId}/workout-sessions?page=0&size=${PAGE_SIZE}`,
         { signal },
       )
       return page.content.map(toSummary).sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor))
@@ -161,7 +161,7 @@ export const workoutsService = {
   async getById(clientId: string, sessionId: string, signal?: AbortSignal): Promise<WorkoutSession> {
     try {
       const page = await apiClient.get<WorkoutSessionPageResource>(
-        `/v1/clients/${clientId}/workout-sessions?page=0&size=${PAGE_SIZE}`,
+        `/clients/${clientId}/workout-sessions?page=0&size=${PAGE_SIZE}`,
         { signal },
       )
       const resource = page.content.find((session) => session.id === sessionId)
@@ -185,7 +185,7 @@ export const workoutsService = {
   async getProgressReport(clientId: string, from: string, to: string, signal?: AbortSignal): Promise<ProgressReport> {
     try {
       const report = await apiClient.get<ProgressReportResource>(
-        `/v1/clients/${clientId}/progress-reports?from=${from}&to=${to}`,
+        `/clients/${clientId}/progress-reports?from=${from}&to=${to}`,
         { signal },
       )
       return {
@@ -227,7 +227,7 @@ export const workoutsService = {
   ): Promise<ProgressChart> {
     try {
       const chart = await apiClient.get<ProgressChartResource>(
-        `/v1/clients/${clientId}/progress-charts?exerciseId=${exerciseId}&weeks=${weeks}`,
+        `/clients/${clientId}/progress-charts?exerciseId=${exerciseId}&weeks=${weeks}`,
         { signal },
       )
       return {

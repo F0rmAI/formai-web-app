@@ -81,7 +81,7 @@ function parseJson(text: string): unknown {
 type UnauthorizedHandler = () => void
 
 /** Path that renews the session cookies with the refresh cookie. */
-const REFRESH_PATH = '/v1/authentication/refresh'
+const REFRESH_PATH = '/authentication/refresh'
 
 let onUnauthorized: UnauthorizedHandler | null = null
 let refreshing: Promise<AuthUser | null> | null = null

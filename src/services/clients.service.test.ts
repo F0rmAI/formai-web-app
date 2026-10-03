@@ -24,18 +24,18 @@ describe('clientsService', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('lists the clients with their routine, last workout and derived invitation status', async () => {
-    const requests = stubBackend({ 'GET /v1/clients': { content: clients }, 'GET /v1/client-overviews': { content: overviews } })
+    const requests = stubBackend({ 'GET /clients': { content: clients }, 'GET /client-overviews': { content: overviews } })
 
     const result = await clientsService.list(' Die ', 'ALL')
 
-    expect(requests[0].path).toBe('/v1/clients?page=0&size=100&search=Die')
+    expect(requests[0].path).toBe('/clients?page=0&size=100&search=Die')
     expect(result.map((client) => client.status)).toEqual(['ACTIVE', 'INVITATION_EXPIRED', 'INVITED'])
     expect(result[0]).toMatchObject({ currentRoutine: 'Hipertrofia · 4 días', lastWorkout: 'Mié 16 sep 2026' })
     expect(result[1]).toMatchObject({ email: null, currentRoutine: null, lastWorkout: null })
   })
 
   it('asks the backend for invited clients and keeps only the expired ones', async () => {
-    const requests = stubBackend({ 'GET /v1/clients': { content: clients.slice(1) }, 'GET /v1/client-overviews': { content: [] } })
+    const requests = stubBackend({ 'GET /clients': { content: clients.slice(1) }, 'GET /client-overviews': { content: [] } })
 
     const result = await clientsService.list('', 'INVITATION_EXPIRED')
 
@@ -44,15 +44,15 @@ describe('clientsService', () => {
   })
 
   it('reports an unexpected failure with a message ready to show', async () => {
-    stubBackend({ 'GET /v1': { status: 500, body: { detail: 'Boom' } } })
+    stubBackend({ 'GET /': { status: 500, body: { detail: 'Boom' } } })
 
     await expect(clientsService.list()).rejects.toMatchObject({ code: 'UNEXPECTED', message: expect.stringContaining('No pudimos') })
   })
 
   it('builds the detail of a client with its profile and current routine', async () => {
     stubBackend({
-      'GET /v1/clients/c1': clients[0],
-      'GET /v1/clients/c1/body-profile': {
+      'GET /clients/c1': clients[0],
+      'GET /clients/c1/body-profile': {
         goal: 'Hipertrofia',
         heightCm: 176,
         weightKg: 78,
@@ -62,12 +62,12 @@ describe('clientsService', () => {
           { weightKg: 78, recordedOn: '2026-09-15' },
         ],
       },
-      'GET /v1/clients/c1/assignments': [
+      'GET /clients/c1/assignments': [
         { clientId: 'c1', routineId: 'r1', routineName: 'Hipertrofia · 4 días', startDate: '2026-09-01', endDate: null, trainingDays: ['MONDAY', 'WEDNESDAY'], current: true },
         { clientId: 'c1', routineId: 'r0', routineName: null, startDate: '2026-08-01', endDate: '2026-08-31', trainingDays: ['TUESDAY'], current: false },
       ],
-      'GET /v1/routines/r1': { currentVersion: 2 },
-      'GET /v1/client-overviews': { content: overviews },
+      'GET /routines/r1': { currentVersion: 2 },
+      'GET /client-overviews': { content: overviews },
     })
 
     const detail = await clientsService.getById('c1')
@@ -86,10 +86,10 @@ describe('clientsService', () => {
 
   it('treats a client without body profile or routine as empty, not as an error', async () => {
     stubBackend({
-      'GET /v1/clients/c2': clients[1],
-      'GET /v1/clients/c2/body-profile': { status: 404 },
-      'GET /v1/clients/c2/assignments': [],
-      'GET /v1/client-overviews': { content: [] },
+      'GET /clients/c2': clients[1],
+      'GET /clients/c2/body-profile': { status: 404 },
+      'GET /clients/c2/assignments': [],
+      'GET /client-overviews': { content: [] },
     })
 
     const detail = await clientsService.getById('c2')
@@ -100,15 +100,15 @@ describe('clientsService', () => {
   })
 
   it('reports a client outside the portfolio as not found', async () => {
-    stubBackend({ 'GET /v1': { status: 404 } })
+    stubBackend({ 'GET /': { status: 404 } })
 
     await expect(clientsService.getById('zz')).rejects.toMatchObject({ code: 'CLIENT_NOT_FOUND' })
   })
 
   it('reads the current assignment id and maps a forbidden composition response', async () => {
     const requests = stubBackend({
-      'GET /v1/clients/c1/assignments': [{ routineId: 'r2', routineName: 'Otra rutina', current: true }],
-      'GET /v1/clients/c9/assignments': { status: 403 },
+      'GET /clients/c1/assignments': [{ routineId: 'r2', routineName: 'Otra rutina', current: true }],
+      'GET /clients/c9/assignments': { status: 403 },
     })
 
     await expect(clientsService.getCurrentAssignment('c1')).resolves.toEqual({ routineId: 'r2', routineName: 'Otra rutina' })
@@ -118,7 +118,7 @@ describe('clientsService', () => {
 
   it('registers a client and returns the activation code with its expiration formatted', async () => {
     const requests = stubBackend({
-      'POST /v1/clients': { id: 'c9', fullName: 'Lucía Fernández', status: 'INVITED', activationCode: 'FA-7K2Q', activationCodeExpiresAt: '2026-09-20T10:30:00' },
+      'POST /clients': { id: 'c9', fullName: 'Lucía Fernández', status: 'INVITED', activationCode: 'FA-7K2Q', activationCodeExpiresAt: '2026-09-20T10:30:00' },
     })
 
     const code = await clientsService.register({ fullName: 'Lucía Fernández' })
@@ -128,7 +128,7 @@ describe('clientsService', () => {
   })
 
   it('reports an invalid registration name', async () => {
-    stubBackend({ 'POST /v1/clients': { status: 400 } })
+    stubBackend({ 'POST /clients': { status: 400 } })
 
     await expect(clientsService.register({ fullName: '' })).rejects.toMatchObject({
       code: 'INVALID_CLIENT_NAME',
@@ -138,14 +138,14 @@ describe('clientsService', () => {
 
   it('renames a client and sends only the full name', async () => {
     const updated = { ...clients[0], fullName: 'Diego Ramos' }
-    const requests = stubBackend({ 'PUT /v1/clients/c1': updated })
+    const requests = stubBackend({ 'PUT /clients/c1': updated })
 
     await expect(clientsService.rename('c1', ' Diego Ramos ')).resolves.toEqual(updated)
-    expect(requests[0]).toMatchObject({ method: 'PUT', path: '/v1/clients/c1', body: { fullName: 'Diego Ramos' } })
+    expect(requests[0]).toMatchObject({ method: 'PUT', path: '/clients/c1', body: { fullName: 'Diego Ramos' } })
   })
 
   it.each([400, 403, 404])('maps rename status %i to a Spanish service error', async (status) => {
-    stubBackend({ 'PUT /v1/clients/c1': { status, body: { detail: 'Backend detail' } } })
+    stubBackend({ 'PUT /clients/c1': { status, body: { detail: 'Backend detail' } } })
 
     await expect(clientsService.rename('c1', 'Diego')).rejects.toMatchObject({
       code: status === 400 ? 'INVALID_CLIENT_NAME' : 'CLIENT_NOT_FOUND',
@@ -156,10 +156,10 @@ describe('clientsService', () => {
   it('regenerates the activation code, after which the client counts as invited again', async () => {
     const expiresAt = new Date(Date.now() + 72 * HOUR).toISOString()
     stubBackend({
-      'POST /v1/clients/c2/activation-codes': { clientId: 'c2', activationCode: 'FA-Q9M3', expiresAt },
-      'GET /v1/clients/c2': clients[1],
-      'GET /v1/clients?': { content: [clients[1]] },
-      'GET /v1/client-overviews': { content: [] },
+      'POST /clients/c2/activation-codes': { clientId: 'c2', activationCode: 'FA-Q9M3', expiresAt },
+      'GET /clients/c2': clients[1],
+      'GET /clients?': { content: [clients[1]] },
+      'GET /client-overviews': { content: [] },
     })
 
     const code = await clientsService.regenerateCode('c2')
@@ -170,7 +170,7 @@ describe('clientsService', () => {
   })
 
   it('explains that an activated client cannot receive another code', async () => {
-    stubBackend({ 'POST /v1/clients/c1/activation-codes': { status: 409, body: { detail: 'Account active' } } })
+    stubBackend({ 'POST /clients/c1/activation-codes': { status: 409, body: { detail: 'Account active' } } })
 
     await expect(clientsService.regenerateCode('c1')).rejects.toMatchObject({
       code: 'ALREADY_ACTIVATED', message: 'Este cliente ya activó su cuenta y no necesita otro código.',
@@ -178,7 +178,7 @@ describe('clientsService', () => {
   })
 
   it('sends the body profile with the field names of the backend', async () => {
-    const requests = stubBackend({ 'PUT /v1/clients/c1/body-profile': {} })
+    const requests = stubBackend({ 'PUT /clients/c1/body-profile': {} })
 
     await clientsService.updateBodyProfile('c1', { goal: 'Fuerza', weight: 77.5, height: 176, restrictions: '' })
 
@@ -186,7 +186,7 @@ describe('clientsService', () => {
   })
 
   it('reports a rejected body profile', async () => {
-    stubBackend({ 'PUT /v1': { status: 422 } })
+    stubBackend({ 'PUT /': { status: 422 } })
 
     await expect(
       clientsService.updateBodyProfile('c1', { goal: 'Fuerza', weight: 1, height: 1, restrictions: '' }),
@@ -198,24 +198,24 @@ describe('clientsService', () => {
     ['heightCm', 'INVALID_HEIGHT'],
     ['weightKg', 'INVALID_WEIGHT'],
   ])('maps the body profile field %s from a 422', async (field, code) => {
-    stubBackend({ 'PUT /v1/clients/c1/body-profile': { status: 422, body: { detail: 'Out of range', field } } })
+    stubBackend({ 'PUT /clients/c1/body-profile': { status: 422, body: { detail: 'Out of range', field } } })
 
     await expect(clientsService.updateBodyProfile('c1', { goal: 'Fuerza', height: 170, weight: 75, restrictions: '' }))
       .rejects.toMatchObject({ code, message: expect.not.stringContaining('Out of range') })
   })
 
   it('maps blank body profile fields to a Spanish validation error', async () => {
-    stubBackend({ 'PUT /v1/clients/c1/body-profile': { status: 400, body: { detail: 'Bad request' } } })
+    stubBackend({ 'PUT /clients/c1/body-profile': { status: 400, body: { detail: 'Bad request' } } })
 
     await expect(clientsService.updateBodyProfile('c1', { goal: '', height: 170, weight: 75, restrictions: '' }))
       .rejects.toMatchObject({ code: 'INVALID_BODY_PROFILE', message: expect.not.stringContaining('Bad request') })
   })
 
   it('deactivates a client', async () => {
-    const requests = stubBackend({ 'POST /v1/clients/c1/deactivations': {} })
+    const requests = stubBackend({ 'POST /clients/c1/deactivations': {} })
 
     await clientsService.deactivate('c1')
 
-    expect(requests[0]).toMatchObject({ method: 'POST', path: '/v1/clients/c1/deactivations' })
+    expect(requests[0]).toMatchObject({ method: 'POST', path: '/clients/c1/deactivations' })
   })
 })

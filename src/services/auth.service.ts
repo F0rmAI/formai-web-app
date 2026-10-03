@@ -41,7 +41,7 @@ export const authService = {
    * @throws {@link ApiError} with status `409` when the email is taken, or `422` when the password is too weak.
    */
   async signUp(input: SignUpInput): Promise<void> {
-    await apiClient.post('/v1/authentication/sign-up', input, PUBLIC)
+    await apiClient.post('/authentication/sign-up', input, PUBLIC)
   },
 
   /**
@@ -55,7 +55,7 @@ export const authService = {
    */
   async signIn(input: SignInInput, fullName?: string): Promise<AuthUser> {
     const user = await apiClient.post<AuthenticatedUserResource>(
-      '/v1/authentication/sign-in',
+      '/authentication/sign-in',
       { ...input, application: 'WEB_PLATFORM' },
       PUBLIC,
     )
@@ -69,7 +69,7 @@ export const authService = {
    * @throws {@link ApiError} when the server responds with a non-success status.
    */
   async signOut(): Promise<void> {
-    await apiClient.post('/v1/authentication/sign-out', undefined, PUBLIC)
+    await apiClient.post('/authentication/sign-out', undefined, PUBLIC)
   },
 
   /**
@@ -79,7 +79,7 @@ export const authService = {
    * @throws {@link ApiError} when the server responds with a non-success status.
    */
   async requestPasswordReset(email: string): Promise<void> {
-    await apiClient.post('/v1/password-reset-requests', { email }, PUBLIC)
+    await apiClient.post('/password-reset-requests', { email }, PUBLIC)
   },
 
   /**
@@ -89,6 +89,6 @@ export const authService = {
    * @throws {@link ApiError} with status `422` when the link expired, was used or the password is too weak.
    */
   async resetPassword(input: PasswordResetInput): Promise<void> {
-    await apiClient.post('/v1/password-resets', input, PUBLIC)
+    await apiClient.post('/password-resets', input, PUBLIC)
   },
 }

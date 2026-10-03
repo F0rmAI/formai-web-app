@@ -106,10 +106,10 @@ function toRoutine(resource: RoutineResource, clientsByRoutine = new Map<string,
 async function getClientsByRoutine(signal?: AbortSignal): Promise<Map<string, string[]>> {
   const byRoutine = new Map<string, string[]>()
   try {
-    const clients = await apiClient.get<ClientPageResource>(`/v1/clients?status=ACTIVE&size=${PAGE_SIZE}`, { signal })
+    const clients = await apiClient.get<ClientPageResource>(`/clients?status=ACTIVE&size=${PAGE_SIZE}`, { signal })
     await Promise.all(
       clients.content.map(async (client) => {
-        const assignments = await apiClient.get<AssignmentResource[]>(`/v1/clients/${client.id}/assignments`, {
+        const assignments = await apiClient.get<AssignmentResource[]>(`/clients/${client.id}/assignments`, {
           signal,
         })
         const current = assignments.find((assignment) => assignment.current)
@@ -149,7 +149,7 @@ export const routinesService = {
       const resources: RoutineResource[] = []
       let totalPages = 1
       for (let page = 0; page < totalPages; page += 1) {
-        const result = await apiClient.get<RoutinePageResource>(`/v1/routines?page=${page}&size=${PAGE_SIZE}`, {
+        const result = await apiClient.get<RoutinePageResource>(`/routines?page=${page}&size=${PAGE_SIZE}`, {
           signal,
         })
         totalPages = Math.max(result.totalPages, 1)
@@ -173,7 +173,7 @@ export const routinesService = {
   async getById(routineId: string, signal?: AbortSignal): Promise<Routine> {
     try {
       const [resource, clientsByRoutine] = await Promise.all([
-        apiClient.get<RoutineResource>(`/v1/routines/${routineId}`, { signal }),
+        apiClient.get<RoutineResource>(`/routines/${routineId}`, { signal }),
         getClientsByRoutine(signal),
       ])
       return toRoutine(resource, clientsByRoutine)
@@ -191,7 +191,7 @@ export const routinesService = {
    */
   async create(input: SaveRoutineInput): Promise<Routine> {
     try {
-      return toRoutine(await apiClient.post<RoutineResource>('/v1/routines', input))
+      return toRoutine(await apiClient.post<RoutineResource>('/routines', input))
     } catch (error) {
       throwServiceError(error, { 400: INVALID, 404: INVALID, 422: INVALID }, UNEXPECTED)
     }
@@ -208,7 +208,7 @@ export const routinesService = {
   async update(routineId: string, input: SaveRoutineInput): Promise<Routine> {
     try {
       const [resource, clientsByRoutine] = await Promise.all([
-        apiClient.put<RoutineResource>(`/v1/routines/${routineId}`, input),
+        apiClient.put<RoutineResource>(`/routines/${routineId}`, input),
         getClientsByRoutine(),
       ])
       return toRoutine(resource, clientsByRoutine)
@@ -227,7 +227,7 @@ export const routinesService = {
    */
   async getVersions(routineId: string, signal?: AbortSignal): Promise<RoutineVersion[]> {
     try {
-      const versions = await apiClient.get<RoutineVersionResource[]>(`/v1/routines/${routineId}/versions`, {
+      const versions = await apiClient.get<RoutineVersionResource[]>(`/routines/${routineId}/versions`, {
         signal,
       })
       return versions
@@ -254,7 +254,7 @@ export const routinesService = {
   async duplicate(routineId: string, name: string): Promise<Routine> {
     try {
       return toRoutine(
-        await apiClient.post<RoutineResource>(`/v1/routines/${routineId}/duplicates`, { name: name.trim() }),
+        await apiClient.post<RoutineResource>(`/routines/${routineId}/duplicates`, { name: name.trim() }),
       )
     } catch (error) {
       throwServiceError(error, { 400: INVALID, 404: NOT_FOUND, 422: INVALID }, UNEXPECTED)
@@ -270,7 +270,7 @@ export const routinesService = {
    */
   async assign(routineId: string, input: AssignRoutineInput): Promise<void> {
     try {
-      await apiClient.post(`/v1/routines/${routineId}/assignments`, input)
+      await apiClient.post(`/routines/${routineId}/assignments`, input)
     } catch (error) {
       throwServiceError<RoutinesErrorCode>(
         error,

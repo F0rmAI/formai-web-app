@@ -61,7 +61,7 @@ async function countRoutinesByExercise(signal?: AbortSignal): Promise<Map<string
   const counts = new Map<string, number>()
   let totalPages = 1
   for (let page = 0; page < totalPages; page += 1) {
-    const result = await apiClient.get<RoutineUsagePageResource>(`/v1/routines?page=${page}&size=${PAGE_SIZE}`, {
+    const result = await apiClient.get<RoutineUsagePageResource>(`/routines?page=${page}&size=${PAGE_SIZE}`, {
       signal,
     })
     totalPages = Math.max(result.totalPages, 1)
@@ -97,7 +97,7 @@ export const exercisesService = {
   async list(status: ExerciseStatus, signal?: AbortSignal): Promise<Exercise[]> {
     try {
       const [exercises, usage] = await Promise.all([
-        apiClient.get<ExercisePageResource>(`/v1/exercises?page=0&size=${PAGE_SIZE}&status=${status}`, { signal }),
+        apiClient.get<ExercisePageResource>(`/exercises?page=0&size=${PAGE_SIZE}&status=${status}`, { signal }),
         countRoutinesByExercise(signal).catch(() => new Map<string, number>()),
       ])
       return exercises.content.map((resource) => toExercise(resource, usage.get(resource.id) ?? 0))
@@ -115,7 +115,7 @@ export const exercisesService = {
    */
   async create(input: CreateExerciseInput): Promise<Exercise> {
     try {
-      const created = await apiClient.post<ExerciseResource>('/v1/exercises', {
+      const created = await apiClient.post<ExerciseResource>('/exercises', {
         name: input.name.trim(),
         muscleGroup: input.muscleGroup.trim(),
         equipment: input.equipment?.trim() || null,
@@ -139,7 +139,7 @@ export const exercisesService = {
    */
   async archive(exerciseId: string): Promise<Exercise> {
     try {
-      return toExercise(await apiClient.post<ExerciseResource>(`/v1/exercises/${exerciseId}/archivals`))
+      return toExercise(await apiClient.post<ExerciseResource>(`/exercises/${exerciseId}/archivals`))
     } catch (error) {
       throwServiceError(error, { 404: NOT_FOUND }, UNEXPECTED)
     }
@@ -154,7 +154,7 @@ export const exercisesService = {
    */
   async restore(exerciseId: string): Promise<Exercise> {
     try {
-      return toExercise(await apiClient.post<ExerciseResource>(`/v1/exercises/${exerciseId}/restorations`))
+      return toExercise(await apiClient.post<ExerciseResource>(`/exercises/${exerciseId}/restorations`))
     } catch (error) {
       throwServiceError(error, { 404: NOT_FOUND }, UNEXPECTED)
     }
@@ -168,7 +168,7 @@ export const exercisesService = {
    */
   async remove(exerciseId: string): Promise<void> {
     try {
-      await apiClient.delete(`/v1/exercises/${exerciseId}`)
+      await apiClient.delete(`/exercises/${exerciseId}`)
     } catch (error) {
       throwServiceError<ExercisesErrorCode>(error, {
         404: NOT_FOUND,
