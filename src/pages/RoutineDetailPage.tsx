@@ -181,6 +181,7 @@ function RoutineDetail({ routineId }: { routineId: string }) {
         <AssignRoutineModal
           routineName={routine.name}
           clients={clients}
+          sessionCount={routine.sessions.length}
           isSubmitting={isAssigning}
           error={assignError}
           onSubmit={(selected, startDate, trainingDays) => void handleAssign(selected, startDate, trainingDays)}

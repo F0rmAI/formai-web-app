@@ -6,7 +6,7 @@
  */
 
 import { useId, useState, type FormEvent } from 'react'
-import { Button, Checkbox, Chip, Modal, Text, TextField } from '@/components/ui'
+import { Button, Chip, Combobox, Modal, Text, TextField } from '@/components/ui'
 import type { ClientSummary } from '@/types/client'
 import type { TrainingDay } from '@/types/routine'
 import { toIsoDate } from '@/utils/format'
@@ -25,6 +25,13 @@ function toBlockedMessage(client: ClientSummary): string {
   return `${client.fullName} ${reason} y no puede recibir rutinas. Quítalo de la selección.`
 }
 
+/** Explains how many training days the routine needs: one per session. */
+function toDaysHint(sessionCount: number): string {
+  return sessionCount === 1
+    ? 'Esta rutina tiene 1 sesión: elige 1 día.'
+    : `Esta rutina tiene ${sessionCount} sesiones: elige ${sessionCount} días.`
+}
+
 /**
  * Props accepted by {@link AssignRoutineModal}.
  */
@@ -33,6 +40,8 @@ export interface AssignRoutineModalProps {
   routineName: string
   /** Clients of the trainer, with every status. */
   clients: ClientSummary[]
+  /** Sessions of the routine; the client trains one session per training day. */
+  sessionCount: number
   /** Whether the assignment is being sent. */
   isSubmitting: boolean
   /** Message of the failed assignment. */
@@ -44,14 +53,23 @@ export interface AssignRoutineModalProps {
 }
 
 /**
- * Lists the clients of the trainer to choose who receives a routine and from when, and reports
- * the selection the user submits.
+ * Lets the trainer search the clients that receive a routine, choose from when and on which days,
+ * and reports the selection the user submits.
  *
  * @remarks
  * A client that is not active can be ticked, but the form explains why it cannot receive the
- * routine and blocks the submission until it is removed. Mount it only while it is open.
+ * routine and blocks the submission until it is removed. The routine needs exactly one training
+ * day per session. Mount it only while it is open.
  */
-export function AssignRoutineModal({ routineName, clients, isSubmitting, error, onSubmit, onClose }: AssignRoutineModalProps) {
+export function AssignRoutineModal({
+  routineName,
+  clients,
+  sessionCount,
+  isSubmitting,
+  error,
+  onSubmit,
+  onClose,
+}: AssignRoutineModalProps) {
   const formId = useId()
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [startDate, setStartDate] = useState(toIsoDate())
@@ -61,9 +79,7 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
   const selected = clients.filter((client) => selectedIds.includes(client.id))
   const blocked = selected.find((client) => client.status !== 'ACTIVE')
   const message = blocked ? toBlockedMessage(blocked) : error
-
-  const toggle = (clientId: string, checked: boolean) =>
-    setSelectedIds((current) => (checked ? [...current, clientId] : current.filter((id) => id !== clientId)))
+  const daysMatch = trainingDays.length === sessionCount
 
   const toggleDay = (day: TrainingDay) => {
     setDaysTouched(true)
@@ -73,7 +89,7 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setDaysTouched(true)
-    if (selected.length > 0 && !blocked && startDate && trainingDays.length > 0) {
+    if (selected.length > 0 && !blocked && startDate && daysMatch) {
       onSubmit(selected, startDate, TRAINING_DAYS.map(({ day }) => day).filter((day) => trainingDays.includes(day)))
     }
   }
@@ -95,7 +111,7 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
             type="submit"
             form={formId}
             loading={isSubmitting}
-            disabled={selected.length === 0 || Boolean(blocked) || !startDate || trainingDays.length === 0}
+            disabled={selected.length === 0 || Boolean(blocked) || !startDate || !daysMatch}
           />
         </>
       }
@@ -104,16 +120,14 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
         {clients.length === 0 ? (
           <Text tone="secondary">Aún no tienes clientes. Regístralos para asignarles una rutina.</Text>
         ) : (
-          <div className="flex flex-col gap-lg">
-            {clients.map((client) => (
-              <Checkbox
-                key={client.id}
-                label={`${client.fullName} · ${toNote(client)}`}
-                checked={selectedIds.includes(client.id)}
-                onChange={(checked) => toggle(client.id, checked)}
-              />
-            ))}
-          </div>
+          <Combobox
+            label="Clientes"
+            placeholder="Busca por nombre"
+            emptyMessage="Ningún cliente coincide con la búsqueda."
+            options={clients.map((client) => ({ value: client.id, label: client.fullName, description: toNote(client) }))}
+            value={selectedIds}
+            onChange={setSelectedIds}
+          />
         )}
 
         {message && (
@@ -136,8 +150,10 @@ export function AssignRoutineModal({ routineName, clients, isSubmitting, error, 
               <Chip key={day} label={label} selected={trainingDays.includes(day)} onClick={() => toggleDay(day)} />
             ))}
           </div>
-          {(daysTouched || selected.length > 0) && trainingDays.length === 0 && (
-            <Text role="alert" variant="body-m" tone="error">Selecciona al menos un día de entrenamiento.</Text>
+          {(daysTouched || selected.length > 0) && !daysMatch ? (
+            <Text role="alert" variant="body-m" tone="error">{toDaysHint(sessionCount)}</Text>
+          ) : (
+            <Text variant="body-m" tone="secondary">{toDaysHint(sessionCount)}</Text>
           )}
         </div>
       </form>
