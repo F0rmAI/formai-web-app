@@ -2,7 +2,8 @@
 
 Inter-session project memory. Keep this file concise (about 50 lines); remove stale details.
 
-## Current status (2026-10-02)
+## Current status (2026-10-04)
+- `feature/assign-client-combobox`: clients are picked from a searchable multi-select `ui/Combobox` and the assignment needs one training day per routine session (the API answers 422 otherwise).
 - The trainer web MVP (TP) is integrated with `formai-api` and ready for its first web release, `v0.1.0`.
 - Flows W1–W5 (access, clients, tracking, exercises, routines) ran in a browser against a local `formai-api` on 2026-10-02. Accounts `qa.trainer.*` and `qa.client.*` remain in the local database.
 - Frontend audit: 0 errors. W6 recognition report and W7 machine catalog, including the Administrator role, belong to TB2.
