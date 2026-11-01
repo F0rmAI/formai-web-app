@@ -13,13 +13,21 @@ import type { Exercise } from '@/types/exercise'
 import { useExercises } from './useExercises'
 
 vi.mock('@/services/exercises.service', () => ({
-  exercisesService: { list: vi.fn(), create: vi.fn(), archive: vi.fn(), restore: vi.fn(), remove: vi.fn() },
+  exercisesService: {
+    list: vi.fn(),
+    muscleGroups: vi.fn().mockResolvedValue(['Pectoral']),
+    create: vi.fn(),
+    archive: vi.fn(),
+    restore: vi.fn(),
+    remove: vi.fn(),
+  },
 }))
 
-const press: Exercise = { id: 'e1', name: 'Press', muscleGroup: 'Pectoral', equipment: null, status: 'ACTIVE', routineCount: 2 }
+const press: Exercise = { id: 'e1', name: 'Press', muscleGroup: 'Pectoral', equipment: null, status: 'ACTIVE', origin: 'OWN', routineCount: 2 }
 
 describe('useExercises', () => {
   beforeEach(() => {
+    vi.mocked(exercisesService.muscleGroups).mockReset().mockResolvedValue(['Pectoral'])
     vi.mocked(exercisesService.list).mockReset().mockResolvedValue([press])
     vi.mocked(exercisesService.create).mockReset()
     vi.mocked(exercisesService.archive).mockReset()
@@ -30,11 +38,11 @@ describe('useExercises', () => {
   it('loads the active exercises and reloads when the status changes', async () => {
     const { result } = renderHook(() => useExercises())
     await waitFor(() => expect(result.current.exercises).toEqual([press]))
-    expect(exercisesService.list).toHaveBeenCalledWith('ACTIVE', expect.any(AbortSignal))
+    expect(exercisesService.list).toHaveBeenCalledWith('ACTIVE', expect.any(AbortSignal), {})
 
     act(() => result.current.setStatus('ARCHIVED'))
 
-    await waitFor(() => expect(exercisesService.list).toHaveBeenLastCalledWith('ARCHIVED', expect.any(AbortSignal)))
+    await waitFor(() => expect(exercisesService.list).toHaveBeenLastCalledWith('ARCHIVED', expect.any(AbortSignal), {}))
   })
 
   it('creates an exercise and reloads the list', async () => {
@@ -108,4 +116,15 @@ describe('useExercises', () => {
     expect(failed).toEqual({ ok: false, error: { message: 'No pudimos restaurar este ejercicio.' } })
     expect(restored).toMatchObject({ ok: true })
   })
+})
+
+it('exposes reference-data failures and retries without losing the exercises', async () => {
+  vi.mocked(exercisesService.list).mockResolvedValue([press])
+  vi.mocked(exercisesService.muscleGroups).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(['Pectoral'])
+  const { result } = renderHook(() => useExercises())
+  await waitFor(() => expect(result.current.muscleGroupsError).toBeTruthy())
+  expect(result.current.exercises).toEqual([press])
+  act(() => result.current.retryMuscleGroups())
+  await waitFor(() => expect(result.current.muscleGroups).toEqual(['Pectoral']))
+  expect(result.current.muscleGroupsError).toBeNull()
 })

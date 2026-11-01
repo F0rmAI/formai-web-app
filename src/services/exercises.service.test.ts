@@ -9,35 +9,50 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { stubBackend } from '@/test/backend'
 import { exercisesService } from './exercises.service'
 
-const press = { id: 'e1', name: 'Press inclinado', muscleGroup: 'Pectoral', equipment: 'Mancuernas', status: 'ACTIVE' }
-const curl = { id: 'e2', name: 'Curl de bíceps', muscleGroup: 'Bíceps', equipment: ' ', status: 'ACTIVE' }
-const routines = {
-  totalPages: 1,
-  content: [
-    { sessions: [{ exercises: [{ exerciseId: 'e1' }] }, { exercises: [{ exerciseId: 'e1' }] }] },
-    { sessions: [{ exercises: [{ exerciseId: 'e1' }] }] },
-  ],
+const press = {
+  id: 'e1',
+  name: 'Press inclinado',
+  muscleGroup: 'Pectoral',
+  equipment: 'Mancuernas',
+  status: 'ACTIVE',
+  origin: 'OWN',
+  routineCount: 2,
+}
+const curl = {
+  id: 'e2',
+  name: 'Curl de bíceps',
+  muscleGroup: 'Bíceps',
+  equipment: ' ',
+  status: 'ACTIVE',
+  origin: 'GLOBAL',
+  routineCount: 0,
 }
 
 describe('exercisesService', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('lists the exercises of a status with the number of routines that use each one', async () => {
-    const requests = stubBackend({ 'GET /exercises': { content: [press, curl] }, 'GET /routines': routines })
+  it('lists the global and own exercises of a status with the usage the backend reports', async () => {
+    const requests = stubBackend({ 'GET /exercises': { content: [press, curl], totalPages: 1 } })
 
     const result = await exercisesService.list('ACTIVE')
 
+    expect(requests).toHaveLength(1)
     expect(requests[0].path).toBe('/exercises?page=0&size=100&status=ACTIVE')
-    expect(result).toEqual([
-      { ...press, routineCount: 2 },
-      { ...curl, equipment: null, routineCount: 0 },
-    ])
+    expect(result).toEqual([press, { ...curl, equipment: null }])
   })
 
-  it('still lists the exercises when the routine usage cannot be read', async () => {
-    stubBackend({ 'GET /exercises': { content: [press] }, 'GET /routines': { status: 500 } })
+  it('sends the muscle group and origin filters', async () => {
+    const requests = stubBackend({ 'GET /exercises': { content: [curl], totalPages: 1 } })
 
-    await expect(exercisesService.list('ACTIVE')).resolves.toEqual([{ ...press, routineCount: 0 }])
+    await exercisesService.list('ACTIVE', undefined, { muscleGroup: 'Bíceps', origin: 'GLOBAL' })
+
+    expect(requests[0].path).toBe('/exercises?page=0&size=100&status=ACTIVE&muscleGroup=B%C3%ADceps&origin=GLOBAL')
+  })
+
+  it('reads the standard muscle groups from the backend', async () => {
+    stubBackend({ 'GET /muscle-groups': ['Pectoral', 'Espalda'] })
+
+    await expect(exercisesService.muscleGroups()).resolves.toEqual(['Pectoral', 'Espalda'])
   })
 
   it('creates an exercise with trimmed values', async () => {
@@ -46,7 +61,7 @@ describe('exercisesService', () => {
     const created = await exercisesService.create({ name: ' Press inclinado ', muscleGroup: 'Pectoral', equipment: '' })
 
     expect(requests[0].body).toEqual({ name: 'Press inclinado', muscleGroup: 'Pectoral', equipment: null })
-    expect(created).toMatchObject({ id: 'e1', routineCount: 0 })
+    expect(created).toMatchObject({ id: 'e1', origin: 'OWN' })
   })
 
   it('reports a duplicate name with the message of the catalog', async () => {
@@ -54,7 +69,7 @@ describe('exercisesService', () => {
 
     await expect(exercisesService.create({ name: 'Press', muscleGroup: 'Pectoral' })).rejects.toMatchObject({
       code: 'NAME_ALREADY_EXISTS',
-      message: 'Ya tienes un ejercicio con este nombre en tu catálogo.',
+      message: 'Ya existe un ejercicio con este nombre en el catálogo global o en tus ejercicios.',
     })
   })
 

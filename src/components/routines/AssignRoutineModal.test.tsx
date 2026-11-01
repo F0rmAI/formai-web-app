@@ -88,7 +88,7 @@ describe('AssignRoutineModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mié' }))
     await userEvent.click(screen.getByRole('button', { name: 'Asignar' }))
 
-    expect(onSubmit).toHaveBeenCalledWith([diego], '2026-09-21', ['MONDAY', 'WEDNESDAY'])
+    expect(onSubmit).toHaveBeenCalledWith([diego], '2026-09-21', ['MONDAY', 'WEDNESDAY'], '')
   })
 
   it('requires exactly one training day per session of the routine', async () => {

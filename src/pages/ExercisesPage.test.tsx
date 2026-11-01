@@ -15,10 +15,17 @@ import type { Exercise } from '@/types/exercise'
 import { ExercisesPage } from './ExercisesPage'
 
 vi.mock('@/services/exercises.service', () => ({
-  exercisesService: { list: vi.fn(), create: vi.fn(), archive: vi.fn(), restore: vi.fn(), remove: vi.fn() },
+  exercisesService: {
+    list: vi.fn(),
+    muscleGroups: vi.fn().mockResolvedValue(['Pectoral']),
+    create: vi.fn(),
+    archive: vi.fn(),
+    restore: vi.fn(),
+    remove: vi.fn(),
+  },
 }))
 
-const unused: Exercise = { id: 'e1', name: 'Press', muscleGroup: 'Pectoral', equipment: null, status: 'ACTIVE', routineCount: 0 }
+const unused: Exercise = { id: 'e1', name: 'Press', muscleGroup: 'Pectoral', equipment: null, status: 'ACTIVE', origin: 'OWN', routineCount: 0 }
 const used: Exercise = { ...unused, id: 'e2', name: 'Curl', routineCount: 2 }
 const archived: Exercise = { ...unused, id: 'e3', name: 'Remo', status: 'ARCHIVED' }
 

@@ -100,7 +100,15 @@ describe('routinesService', () => {
 
     await routinesService.assign('r1', { clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY', 'WEDNESDAY'] })
 
-    expect(requests[0].body).toEqual({ clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY', 'WEDNESDAY'] })
+    expect(requests[0].body).toEqual({ clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY', 'WEDNESDAY'], note: null })
+  })
+
+  it('sends the trimmed note of the assignment', async () => {
+    const requests = stubBackend({ 'POST /routines/r1/assignments': [] })
+
+    await routinesService.assign('r1', { clientIds: ['c1'], startDate: '2026-09-21', trainingDays: ['MONDAY'], note: '  Calienta 10 min  ' })
+
+    expect(requests[0].body).toMatchObject({ note: 'Calienta 10 min' })
   })
 
   it('reports a client that cannot receive routines', async () => {

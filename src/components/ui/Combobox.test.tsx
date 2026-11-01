@@ -8,7 +8,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Combobox } from './Combobox'
 
 const options = [
@@ -67,4 +67,25 @@ describe('Combobox', () => {
 
     expect(screen.getByText('Sin resultados')).toBeInTheDocument()
   })
+  it('keeps the list stable until the outside click completes and lets the control receive it', async () => {
+    const user = userEvent.setup()
+    const clicked = vi.fn()
+    render(<><Harness /><button onClick={clicked}>Día siguiente</button></>)
+    await userEvent.click(screen.getByRole('combobox'))
+    const button = screen.getByRole('button', { name: 'Día siguiente' })
+    await user.pointer({ target: button, keys: '[MouseLeft>]' })
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await user.pointer({ target: button, keys: '[/MouseLeft]' })
+    expect(clicked).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
+  it('closes when keyboard focus leaves with Tab', async () => {
+    render(<><Harness /><button>Siguiente</button></>)
+    await userEvent.click(screen.getByRole('combobox'))
+    await userEvent.tab()
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toHaveFocus()
+  })
+
 })

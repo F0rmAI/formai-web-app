@@ -63,10 +63,10 @@ describe('clientsService', () => {
         ],
       },
       'GET /clients/c1/assignments': [
-        { clientId: 'c1', routineId: 'r1', routineName: 'Hipertrofia · 4 días', startDate: '2026-09-01', endDate: null, trainingDays: ['MONDAY', 'WEDNESDAY'], current: true },
+        { clientId: 'c1', routineId: 'r1', routineName: 'Hipertrofia · 4 días', startDate: '2026-09-01', endDate: null, trainingDays: ['MONDAY', 'WEDNESDAY'], current: true, note: 'Cuida la rodilla', adjustments: [{ sessionOrder: 1, exerciseId: 'e1', targetLoadKg: 40, restSeconds: null }] },
         { clientId: 'c1', routineId: 'r0', routineName: null, startDate: '2026-08-01', endDate: '2026-08-31', trainingDays: ['TUESDAY'], current: false },
       ],
-      'GET /routines/r1': { currentVersion: 2 },
+      'GET /routines/r1': { currentVersion: 2, sessions: [{ order: 1, label: 'Día A', exercises: [{ exerciseId: 'e1', exerciseName: 'Sentadilla', sets: 3, reps: 10, targetLoadKg: '60', restSeconds: 90 }] }] },
       'GET /client-overviews': { content: overviews },
     })
 
@@ -77,11 +77,42 @@ describe('clientsService', () => {
       { date: '15 sep 2026', weight: 78 },
       { date: '1 sep 2026', weight: 79.5 },
     ])
-    expect(detail.routine).toEqual({ id: 'r1', name: 'Hipertrofia · 4 días', assignedSince: '1 de septiembre de 2026', version: 2, trainingDays: ['MONDAY', 'WEDNESDAY'] })
+    expect(detail.routine).toEqual({
+      id: 'r1',
+      name: 'Hipertrofia · 4 días',
+      assignedSince: '1 de septiembre de 2026',
+      version: 2,
+      trainingDays: ['MONDAY', 'WEDNESDAY'],
+      sessions: [{ order: 1, label: 'Día A', exercises: [{ exerciseId: 'e1', exerciseName: 'Sentadilla', sets: 3, reps: 10, targetLoadKg: 60, restSeconds: 90 }] }],
+      note: 'Cuida la rodilla',
+      adjustments: [{ sessionOrder: 1, exerciseId: 'e1', targetLoadKg: 40, restSeconds: null }],
+    })
     expect(detail.assignments).toMatchObject([
       { routineName: 'Hipertrofia · 4 días', endDate: null, current: true },
       { routineName: 'Rutina de otro entrenador', endDate: '31 ago 2026', trainingDays: ['TUESDAY'] },
     ])
+  })
+
+  it('personalizes the current assignment of a client', async () => {
+    const requests = stubBackend({ 'PUT /clients/c1/assignments/current': {} })
+
+    await clientsService.personalizeAssignment('c1', {
+      note: '  Cuida la rodilla ',
+      adjustments: [{ sessionOrder: 1, exerciseId: 'e1', targetLoadKg: 40, restSeconds: null }],
+    })
+
+    expect(requests[0].body).toEqual({
+      note: 'Cuida la rodilla',
+      adjustments: [{ sessionOrder: 1, exerciseId: 'e1', targetLoadKg: 40, restSeconds: null }],
+    })
+  })
+
+  it('reports a client without a current assignment to personalize', async () => {
+    stubBackend({ 'PUT /clients/c1/assignments/current': { status: 404 } })
+
+    await expect(clientsService.personalizeAssignment('c1', { note: '', adjustments: [] })).rejects.toMatchObject({
+      code: 'NO_CURRENT_ASSIGNMENT',
+    })
   })
 
   it('treats a client without body profile or routine as empty, not as an error', async () => {
