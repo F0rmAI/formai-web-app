@@ -6,7 +6,7 @@
  */
 
 import { Table, TableAction, TableCell, TableHeaderCell, TableRow } from '@/components/layout'
-import { Text } from '@/components/ui'
+import { Badge, Text } from '@/components/ui'
 import type { Exercise } from '@/types/exercise'
 import { formatCount } from '@/utils/format'
 import { ExerciseStatusBadge } from './ExerciseStatusBadge'
@@ -34,12 +34,16 @@ export interface ExercisesTableProps {
 
 /**
  * Lists exercises and reports which one the user archives, removes or restores.
+ *
+ * @remarks
+ * Exercises of the global catalog are read-only: they show no actions.
  */
 export function ExercisesTable({ exercises, onArchive, onRemove, onRestore }: ExercisesTableProps) {
   return (
     <Table label="Ejercicios">
       <TableRow header>
         <TableHeaderCell label="Ejercicio" />
+        <TableHeaderCell label="Origen" width="md" />
         <TableHeaderCell label="Estado" width="md" />
         <TableHeaderCell label="Equipo" width="lg" />
         <TableHeaderCell label="Uso en rutinas" width="lg" />
@@ -54,6 +58,13 @@ export function ExercisesTable({ exercises, onArchive, onRemove, onRestore }: Ex
               {exercise.muscleGroup}
             </Text>
           </TableCell>
+          <TableCell width="md" label="Origen">
+            {exercise.origin === 'GLOBAL' ? (
+              <Badge label="Global" tone="secondary" />
+            ) : (
+              <Badge label="Propio" tone="primary" />
+            )}
+          </TableCell>
           <TableCell width="md" label="Estado">
             <ExerciseStatusBadge status={exercise.status} />
           </TableCell>
@@ -64,7 +75,7 @@ export function ExercisesTable({ exercises, onArchive, onRemove, onRestore }: Ex
             <Text tone="secondary">{toUsage(exercise)}</Text>
           </TableCell>
           <TableCell width="sm" actions>
-            {exercise.status === 'ACTIVE' ? (
+            {exercise.origin === 'GLOBAL' ? null : exercise.status === 'ACTIVE' ? (
               <>
                 <TableAction icon="archive" label={`Archivar ${exercise.name}`} onClick={() => onArchive(exercise)} />
                 {exercise.routineCount === 0 && (

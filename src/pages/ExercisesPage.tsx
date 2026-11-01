@@ -11,12 +11,19 @@ import { FilterBar, FilterField, PageHeader, ToastViewport } from '@/components/
 import { Button, Card, Dialog, EmptyState, LoadingState, SelectField, type SelectOption } from '@/components/ui'
 import { useExercises } from '@/hooks/useExercises'
 import { useToast } from '@/hooks/useToast'
-import type { CreateExerciseInput, Exercise, ExerciseStatus } from '@/types/exercise'
+import type { CreateExerciseInput, Exercise, ExerciseOrigin, ExerciseStatus } from '@/types/exercise'
 
 /** Options of the status filter. */
 const statusOptions: SelectOption<ExerciseStatus>[] = [
   { value: 'ACTIVE', label: 'Activos' },
   { value: 'ARCHIVED', label: 'Archivados' },
+]
+
+/** Options of the origin filter; the empty value keeps both. */
+const originOptions: SelectOption<ExerciseOrigin | ''>[] = [
+  { value: '', label: 'Todos' },
+  { value: 'GLOBAL', label: 'Catálogo global' },
+  { value: 'OWN', label: 'Mis ejercicios' },
 ]
 
 /**
@@ -32,6 +39,12 @@ export function ExercisesPage() {
     exercises,
     status,
     setStatus,
+    filters,
+    setFilters,
+    muscleGroups,
+    isLoadingMuscleGroups,
+    muscleGroupsError,
+    retryMuscleGroups,
     isLoading,
     error,
     refetch,
@@ -91,7 +104,7 @@ export function ExercisesPage() {
         subtitle={
           isArchivedView
             ? 'Ejercicios archivados: no aparecen al armar rutinas, pero conservan su historial.'
-            : 'Tu catálogo de ejercicios para armar rutinas.'
+            : 'El catálogo global de ejercicios y los tuyos, para armar rutinas.'
         }
         actions={<Button label="Nuevo ejercicio" icon="add" size="md" onClick={openCreate} />}
       />
@@ -101,8 +114,26 @@ export function ExercisesPage() {
           <FilterField>
             <SelectField label="Estado" value={status} options={statusOptions} onChange={setStatus} />
           </FilterField>
+          <FilterField>
+            <SelectField
+              label="Origen"
+              value={filters.origin ?? ''}
+              options={originOptions}
+              onChange={(origin) => setFilters((current) => ({ ...current, origin: origin || undefined }))}
+            />
+          </FilterField>
+          <FilterField>
+            <SelectField
+              label="Grupo muscular"
+              value={filters.muscleGroup ?? ''}
+              options={[{ value: '', label: 'Todos' }, ...muscleGroups.map((group) => ({ value: group, label: group }))]}
+              onChange={(muscleGroup) => setFilters((current) => ({ ...current, muscleGroup: muscleGroup || undefined }))}
+            />
+          </FilterField>
         </FilterBar>
 
+        {muscleGroupsError && <EmptyState title={muscleGroupsError} icon="error" action={{ label: 'Reintentar grupos musculares', onClick: retryMuscleGroups }} />}
+        {isLoadingMuscleGroups && <LoadingState label="Cargando grupos musculares…" />}
         {isLoading && exercises.length === 0 && <LoadingState label="Cargando ejercicios…" />}
 
         {error && (
@@ -137,8 +168,8 @@ export function ExercisesPage() {
               />
             ) : (
               <EmptyState
-                title="Aún no tienes ejercicios"
-                description="Crea tu primer ejercicio para usarlo al armar rutinas."
+                title="No hay ejercicios con estos filtros"
+                description="Cambia los filtros o crea un ejercicio propio que no esté en el catálogo global."
                 icon="exercise"
                 action={{ label: 'Nuevo ejercicio', icon: 'add', onClick: openCreate }}
               />
@@ -149,6 +180,7 @@ export function ExercisesPage() {
 
       {isCreateOpen && (
         <CreateExerciseModal
+          muscleGroups={muscleGroups}
           isSubmitting={isCreating}
           error={createError}
           onSubmit={(input) => void handleCreate(input)}

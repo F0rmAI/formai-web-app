@@ -7,19 +7,21 @@
 
 import { useCallback, useState } from 'react'
 import { exercisesService } from '@/services/exercises.service'
-import type { CreateExerciseInput, Exercise, ExerciseStatus } from '@/types/exercise'
+import type { CreateExerciseInput, Exercise, ExerciseFilters, ExerciseStatus } from '@/types/exercise'
 import { useAsyncAction } from './useAsyncAction'
 import { useAsyncData } from './useAsyncData'
 
 /**
- * Loads the exercises of the catalog by status and exposes the actions to create, archive,
- * restore and remove them.
+ * Loads the exercises available to the trainer (global catalog plus their own) by status, muscle
+ * group and origin, the standard muscle groups, and exposes the actions to create, archive,
+ * restore and remove their own exercises.
  *
  * @remarks
  * An archived or restored exercise stays in the list with its new status until the list is
  * loaded again, so the trainer sees the result of the action.
  *
- * @returns The `exercises` loaded, the `status` filter with `setStatus`, the `isLoading` and
+ * @returns The `exercises` loaded, the `status` filter with `setStatus`, the `filters` (muscle
+ * group and origin) with `setFilters`, the `muscleGroups` served by the backend, the `isLoading` and
  * `error` state, `refetch`, and the actions `createExercise` (`isCreating`, `createError`,
  * `resetCreateError`), `archiveExercise` and `restoreExercise` (`isChangingStatus`), and
  * `removeExercise` (`isRemoving`). Every action resolves with an `ActionResult`.
@@ -31,12 +33,18 @@ import { useAsyncData } from './useAsyncData'
  */
 export function useExercises() {
   const [status, setStatus] = useState<ExerciseStatus>('ACTIVE')
+  const [filters, setFilters] = useState<ExerciseFilters>({})
 
-  const load = useCallback((signal: AbortSignal) => exercisesService.list(status, signal), [status])
+  const load = useCallback(
+    (signal: AbortSignal) => exercisesService.list(status, signal, filters),
+    [status, filters],
+  )
   const { data, isLoading, error, refetch, setData } = useAsyncData(
     load,
     'No pudimos cargar tus ejercicios. Inténtalo nuevamente.',
   )
+
+  const muscleGroups = useAsyncData(exercisesService.muscleGroups, 'No pudimos cargar los grupos musculares.')
 
   const creation = useAsyncAction(exercisesService.create, 'No pudimos guardar el ejercicio. Inténtalo nuevamente.')
   const archival = useAsyncAction(exercisesService.archive, 'No pudimos archivar este ejercicio. Inténtalo de nuevo.')
@@ -96,6 +104,12 @@ export function useExercises() {
     exercises: data ?? [],
     status,
     setStatus,
+    filters,
+    setFilters,
+    muscleGroups: muscleGroups.data ?? [],
+    isLoadingMuscleGroups: muscleGroups.isLoading,
+    muscleGroupsError: muscleGroups.error,
+    retryMuscleGroups: muscleGroups.refetch,
     isLoading,
     error,
     refetch,

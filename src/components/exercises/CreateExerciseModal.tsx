@@ -6,28 +6,15 @@
  */
 
 import { useId, useState, type FormEvent } from 'react'
-import { Button, Modal, SelectField, type SelectOption, TextField } from '@/components/ui'
+import { Button, Modal, SelectField, TextField } from '@/components/ui'
 import type { CreateExerciseInput } from '@/types/exercise'
-
-/** Muscle groups an exercise can be filed under. */
-const muscleGroupOptions: SelectOption<string>[] = [
-  'Pectoral',
-  'Espalda',
-  'Hombros',
-  'Bíceps',
-  'Tríceps',
-  'Core',
-  'Glúteos',
-  'Cuádriceps',
-  'Isquiotibiales',
-  'Pantorrillas',
-  'Cuerpo completo',
-].map((group) => ({ value: group, label: group }))
 
 /**
  * Props accepted by {@link CreateExerciseModal}.
  */
 export interface CreateExerciseModalProps {
+  /** Standard muscle groups served by the backend, in display order. */
+  muscleGroups: string[]
   /** Whether the exercise is being saved. */
   isSubmitting: boolean
   /** Message of the failed save, shown under the name field. */
@@ -44,7 +31,7 @@ export interface CreateExerciseModalProps {
  * @remarks
  * Mount it only while it is open, so the form starts empty every time.
  */
-export function CreateExerciseModal({ isSubmitting, error, onSubmit, onClose }: CreateExerciseModalProps) {
+export function CreateExerciseModal({ muscleGroups, isSubmitting, error, onSubmit, onClose }: CreateExerciseModalProps) {
   const formId = useId()
   const [name, setName] = useState('')
   const [muscleGroup, setMuscleGroup] = useState('')
@@ -60,7 +47,7 @@ export function CreateExerciseModal({ isSubmitting, error, onSubmit, onClose }: 
       open
       onClose={onClose}
       title="Nuevo ejercicio"
-      description="Quedará disponible para usarlo en tus rutinas."
+      description="Solo para ejercicios que no estén en el catálogo global. Quedará disponible para tus rutinas."
       icon="exercise"
       actions={
         <>
@@ -91,7 +78,7 @@ export function CreateExerciseModal({ isSubmitting, error, onSubmit, onClose }: 
         <SelectField
           label="Grupo muscular"
           value={muscleGroup}
-          options={muscleGroupOptions}
+          options={muscleGroups.map((group) => ({ value: group, label: group }))}
           onChange={setMuscleGroup}
           icon="accessibility_new"
           placeholder="Elige un grupo muscular"

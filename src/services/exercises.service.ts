@@ -1,11 +1,11 @@
 /**
- * Service for the exercise catalog of a trainer.
+ * Service for the exercise catalog: the global exercises plus the trainer's own ones.
  *
  * @author Christian Matos
  * @packageDocumentation
  */
 
-import type { CreateExerciseInput, Exercise, ExerciseStatus } from '@/types/exercise'
+import type { CreateExerciseInput, Exercise, ExerciseFilters, ExerciseStatus } from '@/types/exercise'
 import { apiClient } from './api-client'
 import { type ErrorMapping, throwServiceError } from './service-error'
 
@@ -13,14 +13,20 @@ import { type ErrorMapping, throwServiceError } from './service-error'
  * Codes reported by {@link exercisesService}.
  *
  * @remarks
- * - `NAME_ALREADY_EXISTS`: the catalog already has an exercise with that name.
+ * - `NAME_ALREADY_EXISTS`: the global catalog or the trainer's own exercises already have that name.
+ * - `INVALID_MUSCLE_GROUP`: the muscle group is not one of the standard ones.
  * - `EXERCISE_NOT_FOUND`: the exercise does not exist or belongs to another trainer.
  * - `EXERCISE_IN_USE`: a routine uses the exercise; archive it instead.
  * - `UNEXPECTED`: any other failure.
  */
-export type ExercisesErrorCode = 'NAME_ALREADY_EXISTS' | 'EXERCISE_NOT_FOUND' | 'EXERCISE_IN_USE' | 'UNEXPECTED'
+export type ExercisesErrorCode =
+  | 'NAME_ALREADY_EXISTS'
+  | 'INVALID_MUSCLE_GROUP'
+  | 'EXERCISE_NOT_FOUND'
+  | 'EXERCISE_IN_USE'
+  | 'UNEXPECTED'
 
-/** Page size that fits the whole catalog of a trainer in one request. */
+/** Largest page the backend serves. */
 const PAGE_SIZE = 100
 
 interface ExerciseResource {
@@ -29,48 +35,32 @@ interface ExerciseResource {
   muscleGroup: string
   equipment: string | null
   status: string
+  origin: string
+  routineCount: number
 }
 
 interface ExercisePageResource {
   content: ExerciseResource[]
-}
-
-interface RoutineUsageResource {
-  sessions: { exercises: { exerciseId: string }[] }[]
-}
-
-interface RoutineUsagePageResource {
-  content: RoutineUsageResource[]
   totalPages: number
 }
 
-function toExercise(resource: ExerciseResource, routineCount = 0): Exercise {
+function toExercise(resource: ExerciseResource): Exercise {
   return {
     id: resource.id,
     name: resource.name,
     muscleGroup: resource.muscleGroup,
     equipment: resource.equipment?.trim() || null,
     status: resource.status === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE',
-    routineCount,
+    origin: resource.origin === 'GLOBAL' ? 'GLOBAL' : 'OWN',
+    routineCount: resource.routineCount ?? 0,
   }
 }
 
-// The exercise resource does not report its usage, so it is counted from the routines of the
-// trainer: one per routine whose current version prescribes the exercise.
-async function countRoutinesByExercise(signal?: AbortSignal): Promise<Map<string, number>> {
-  const counts = new Map<string, number>()
-  let totalPages = 1
-  for (let page = 0; page < totalPages; page += 1) {
-    const result = await apiClient.get<RoutineUsagePageResource>(`/routines?page=${page}&size=${PAGE_SIZE}`, {
-      signal,
-    })
-    totalPages = Math.max(result.totalPages, 1)
-    for (const routine of result.content) {
-      const used = new Set(routine.sessions.flatMap((session) => session.exercises.map((item) => item.exerciseId)))
-      for (const exerciseId of used) counts.set(exerciseId, (counts.get(exerciseId) ?? 0) + 1)
-    }
-  }
-  return counts
+function toListPath(status: ExerciseStatus, filters: ExerciseFilters, page: number): string {
+  const params = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE), status })
+  if (filters.muscleGroup) params.set('muscleGroup', filters.muscleGroup)
+  if (filters.origin) params.set('origin', filters.origin)
+  return `/exercises?${params.toString()}`
 }
 
 const NOT_FOUND: ErrorMapping<ExercisesErrorCode> = {
@@ -87,20 +77,40 @@ const UNEXPECTED: ErrorMapping<ExercisesErrorCode> = {
  */
 export const exercisesService = {
   /**
-   * Fetches the exercises of the catalog with the given status.
+   * Fetches every exercise available to the trainer with the given status: the global catalog
+   * and their own exercises, each with the number of their routines that prescribe it.
    *
    * @param status - Status to keep.
    * @param signal - Signal used to cancel the request.
-   * @returns The matching exercises with their routine usage; an empty array when there are none.
+   * @param filters - Optional muscle group and origin to keep.
+   * @returns The matching exercises sorted by name; an empty array when there are none.
    * @throws {@link ServiceError} with an {@link ExercisesErrorCode} when the request fails.
    */
-  async list(status: ExerciseStatus, signal?: AbortSignal): Promise<Exercise[]> {
+  async list(status: ExerciseStatus, signal?: AbortSignal, filters: ExerciseFilters = {}): Promise<Exercise[]> {
     try {
-      const [exercises, usage] = await Promise.all([
-        apiClient.get<ExercisePageResource>(`/exercises?page=0&size=${PAGE_SIZE}&status=${status}`, { signal }),
-        countRoutinesByExercise(signal).catch(() => new Map<string, number>()),
-      ])
-      return exercises.content.map((resource) => toExercise(resource, usage.get(resource.id) ?? 0))
+      const exercises: Exercise[] = []
+      let totalPages = 1
+      for (let page = 0; page < totalPages; page += 1) {
+        const result = await apiClient.get<ExercisePageResource>(toListPath(status, filters, page), { signal })
+        totalPages = Math.max(result.totalPages, 1)
+        exercises.push(...result.content.map(toExercise))
+      }
+      return exercises
+    } catch (error) {
+      throwServiceError(error, {}, UNEXPECTED)
+    }
+  },
+
+  /**
+   * Fetches the standard muscle groups an exercise is filed under.
+   *
+   * @param signal - Signal used to cancel the request.
+   * @returns The muscle groups in display order.
+   * @throws {@link ServiceError} with code `UNEXPECTED` when the request fails.
+   */
+  async muscleGroups(signal?: AbortSignal): Promise<string[]> {
+    try {
+      return await apiClient.get<string[]>('/muscle-groups', { signal })
     } catch (error) {
       throwServiceError(error, {}, UNEXPECTED)
     }
@@ -124,7 +134,13 @@ export const exercisesService = {
     } catch (error) {
       throwServiceError<ExercisesErrorCode>(
         error,
-        { 409: { code: 'NAME_ALREADY_EXISTS', message: 'Ya tienes un ejercicio con este nombre en tu catálogo.' } },
+        {
+          409: {
+            code: 'NAME_ALREADY_EXISTS',
+            message: 'Ya existe un ejercicio con este nombre en el catálogo global o en tus ejercicios.',
+          },
+          422: { code: 'INVALID_MUSCLE_GROUP', message: 'Elige uno de los grupos musculares de la lista.' },
+        },
         UNEXPECTED,
       )
     }
