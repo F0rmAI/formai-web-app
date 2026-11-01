@@ -42,13 +42,27 @@ Este repositorio es la **aplicación web (SPA)**. En esta entrega la usa:
 - Registro, inicio de sesión y recuperación de contraseña por correo. La sesión usa cookies `httpOnly`: el token de acceso dura 30 minutos y se renueva de forma transparente. Se restaura tras recargar la página o abrir otra pestaña; también se puede cerrar sesión.
 - Gestión de clientes: alta solo con nombre y código de activación válido por 72 horas (el cliente elige su correo al activar la cuenta en la app móvil). El código se puede regenerar para cualquier cliente invitado. Listado con búsqueda y filtro por estado, hasta 100 clientes por carga y sin paginación en la interfaz; cambio de nombre y desactivación conservando el historial.
 - Ficha física del cliente: objetivo, estatura, peso con historial y restricciones o lesiones; días de entrenamiento e historial de asignaciones.
-- Catálogo propio de ejercicios: crear, archivar y restaurar, con grupo muscular; eliminar si ninguna rutina usa el ejercicio.
+- Catálogo global compartido y ejercicios propios: filtros por origen y grupo muscular estándar, uso en rutinas y distintivos Global/Propio. Solo se pueden archivar, restaurar y eliminar los propios; los duplicados contra globales o propios se rechazan.
 - Rutinas: creación con sesiones y ejercicios prescritos (series, repeticiones, carga objetivo, descansos), duplicado, edición como nueva versión e historial de versiones. Asignación a clientes activos con fecha de inicio y días de entrenamiento; reemplazo de una rutina vigente y reasignación de una cerrada.
+- Personalización por cliente desde su ficha: carga objetivo y descanso por ejercicio, nota opcional de hasta 500 caracteres y eliminación de ajustes para volver a la plantilla. El descanso exige un entero; cero es válido. Los errores conservan el formulario y permiten reintentar.
 - Seguimiento de entrenamientos por cliente: sesiones con detalle por serie, informe de adherencia y gráfico de carga y volumen por ejercicio.
 
 **Planned for TB2 (incremento final)**
 
 - Rol Administrador, catálogo de máquinas, vinculación de ejercicios con máquinas y reporte de reconocimiento por IA.
+
+## User Stories Coverage
+
+| Historias | Cobertura web |
+|---|---|
+| US-001, US-002, US-005 | Registro, acceso, renovación de sesión y recuperación de contraseña |
+| US-003, US-006, US-007 | Alta, cartera, ficha física y gestión de clientes |
+| US-008, US-010, US-011, US-034 | Rutinas, asignación con días y nota, versiones y reasignación |
+| US-009, US-033 | Catálogo global y propio, filtros, validación de duplicados y restauración solo de propios |
+| US-016, US-017, US-018 | Entrenamientos por serie, adherencia y gráficos |
+| US-037, US-038 | Personalización de carga y descanso por cliente; nota multilínea visible en la ficha y en la app |
+
+Validación local (2026-10-08): 254 tests, typecheck, lint y build correctos; auditoría QS sin errores ni avisos. Flujo web–API–Android confirmado con una serie real de prueba. Pantallas y modal revisados en 360, 768 y 1280 px, incluidos errores de carga, reintentos y guardado fallido.
 
 ## Arquitectura
 
@@ -107,7 +121,7 @@ npm run dev              # http://localhost:5173
 Al iniciar verás la página de **inicio de sesión**. Con el backend (`formai-api`) en `http://localhost:8080`
 puedes crear una cuenta de entrenador y recorrer clientes, ejercicios y rutinas.
 
-`npm run build` usa `.env.production`: la URL base es `https://formai-api.quedena.studio/api/v1`.
+`npm run build` usa la URL pública de producción de `src/services/config.ts`: `https://formai-api.quedena.studio/api/v1`. No se versionan archivos `.env` con configuración de entorno.
 Los servicios agregan solo la ruta del recurso. `VITE_API_URL` puede sobrescribirse en el entorno
 de build si cambia el dominio del backend; Vite incorpora ese valor al bundle, no en tiempo de ejecución.
 

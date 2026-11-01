@@ -1,50 +1,40 @@
 # MEMORY.md - FormAI Web App
 
-Inter-session project memory. Keep this file concise (about 50 lines); remove stale details.
+Inter-session project memory. Keep this file concise (about 50 lines); never store credentials.
 
-## Current status (2026-10-04)
-- `feature/assign-client-combobox`: clients are picked from a searchable multi-select `ui/Combobox` and the assignment needs one training day per routine session (the API answers 422 otherwise).
-- The trainer web MVP (TP) is integrated with `formai-api` and ready for its first web release, `v0.1.0`.
-- Flows W1–W5 (access, clients, tracking, exercises, routines) ran in a browser against a local `formai-api` on 2026-10-02. Accounts `qa.trainer.*` and `qa.client.*` remain in the local database.
-- Frontend audit: 0 errors. W6 recognition report and W7 machine catalog, including the Administrator role, belong to TB2.
+## Current status (2026-10-08)
+- Branch `feature/global-exercises-and-assignment-personalization`, based on develop aligned with main (0.2.0). Changes are local; no commit, push or deployment.
+- Global + own exercise catalog, backend muscle groups, origin/group filters, assignment notes and per-client load/rest personalization are complete.
+- 254 tests pass; typecheck, oxlint and production build pass. QS frontend audit: zero errors and warnings. Tokens remain byte-identical to mobile.
+- Local browser E2E covers catalog duplicates/read-only globals, routine with global+own exercise, client registration, assignment, personalization and the Android-recorded set in the trainer's workout detail.
+- Responsive profile/modal checks pass at 360, 768 and 1280 px. Load failures/retries and failed saves preserve existing data; no browser runtime errors.
+- Requirements v0.5.0 and TP/TF diagrams live in the canonical OneDrive document folder. Evidence: `formai/validation/2026-10-08-global-exercises` outside repositories.
 
-## Decisions (and why)
-- React 19.3.0 and Tailwind 4.3.3 are pinned exactly as required by the owner.
-- `VITE_API_URL` includes `/api/v1`; service and refresh paths begin at the resource. `.env.production` targets `https://formai-api.quedena.studio/api/v1`; Vite embeds it at build time. Never put secrets in `VITE_*` values.
-- The UI follows App → Pages → Components and Pages → Hooks → Services → API; `useAsyncData` / `useAsyncAction` centralize data state and errors.
-- Services translate backend errors into Spanish `ServiceError` messages; raw English backend details are not shown to users.
-- One service file per resource and a single `ServiceError` replaced the old mock adapter layers, which no longer run.
-- Route guards and the route tree live in `src/navigation`; pages and hooks use `ROUTES`.
-- The HTTP client refreshes on an initial `401` or `403` because the API returns `403` without a session. It shares one refresh request across restoration and protected calls; a retried `403` remains forbidden, while a retried `401` clears the user.
-- Failed refresh blocks reuse of that cookie until a successful sign-in; refresh rotates its cookie and reusing an old token revokes account sessions.
-- Clients are registered by name only because the client chooses an email and the backend creates the account during mobile activation. An invited client's email can be null, and a new code can be issued before activation.
-- Training days are mandatory when assigning a routine: omitting them means every day in the API and breaks adherence calculations.
-- Replacement is detected by the `routineId` of the client's current assignment; assigning a closed routine can reopen it. Failed assignments refetch because writes are not atomic.
-- The password rule retains letters and numbers from US-001 although the API only checks 8–128 characters.
-- `Dialog` keeps its shared mobile API, so its confirm button has no icon or spinner.
-- Arbitrary CSS values live only in `components/ui` and `components/layout`; the static weight-400 Material Symbols font avoids the much larger variable font.
+## Decisions
+- Pages compose components and use hooks; only services call the shared apiClient. Components receive data/events and use tokens; no service/context imports.
+- React 19.3.0 and Tailwind 4.3.3 stay pinned. Exported APIs use English TSDoc and author headers; UI copy is Spanish.
+- Production's public API URL is in services/config.ts. Explicit VITE_API_URL wins; development defaults to localhost:8080/api/v1. No .env file is tracked; .env.production was removed from the index without committing.
+- VITE_* values are public build-time values; never store secrets there.
+- Catalog origin and routineCount come from the backend, not routine scans. Standard muscle groups load through useExercises with visible errors and retry.
+- Global exercises show no mutation actions. Only own exercises are created/archived/restored/deleted; duplicate names against globals or own entries are rejected.
+- TextField supports typed input/textarea props. Assignment notes are multiline and limited to 500 characters.
+- usePersonalizeAssignment uses useAsyncAction plus a pending-promise guard so simultaneous submissions share one request and refetch once.
+- Personalization accepts decimal comma for load, nonnegative integer rest and zero. Empty values remove overrides and restore routine defaults.
+- A failed routine read preserves saved overrides, shows retry, and disables personalization until sessions load. Orphan overrides are filtered only after a successful version read.
+- Combobox closes after an outside click completes, preventing its in-flow list collapse from swallowing the first click on a training day; Escape and Tab also close it.
+- apiClient shares refresh after the first 401/403 and retries once. A retried 403 stays forbidden; failed refresh blocks cookie reuse until sign-in.
+- Never reuse copied browser storage states after refresh rotation: a stale refresh token revokes every session of the account. Separate E2E contexts sign in afresh.
+- Clients register with a name only; active status requires mobile activation. Assignments require one training day per routine session.
+- Services translate backend ProblemDetail errors into Spanish messages. Route paths live in ROUTES.
 
-## Adaptations to the backend (differ from the mockup on purpose)
-- Prescribed repetitions are one integer, not a range; `PrescribedExerciseResource.reps` is an `int`.
-- “Sesiones por semana” controls the count of session cards; the editor also has session names and add/remove exercise controls.
-- Version history lists the sessions and exercises in each version because the API stores no change summary.
-- A workout row shows its finish time, not duration; the detail badge omits the routine name because the session resource does not provide it.
-- The expired reset-link screen asks for the email again because the link carries only a token; the prototype's “Abrir enlace del correo” button was navigation only.
-- `iam` does not return the trainer's name: after plain sign-in the UI falls back to the email prefix. Immediately after sign-up it has the supplied full name; the trainer's own versions show that name when available.
-- The web shows “Aún sin correo” before mobile activation. Client rename maps 400 to a Spanish validation error and 403/404 to client not found.
-- Exercise deletion is offered when the computed routine count is zero; the backend's 409 remains authoritative and advises archiving.
+## Adaptations and pitfalls
+- Prescribed repetitions are one integer, not a range. Routine versions show snapshots because the API has no change summary.
+- Plain sign-in does not return trainer name; the UI uses the email prefix. A previous trainer's routine can be inaccessible after transfer.
+- There is no trainer endpoint for a single workout: read it from GET /clients/{id}/workout-sessions.
+- Do not infer deletion permission from a zero routineCount: server 409 remains authoritative.
+- Tokens must change in both frontends together; register new tokens in utils/cn.ts.
+- Password recovery E2E with actual mail requires a configured Brevo sender; local validation intentionally disables mail.
 
-## Known limits and pitfalls
-- `client-overviews` keeps showing the routine of a deactivated client (backend); the clients table uses that overview value.
-- The password reset link flow needs SMTP configured in `formai-api` for an end-to-end test.
-- An active client signing in on the web reaches the app gate; a disabled client gets invalid credentials before the gate.
-- The backend sends errors as `application/problem+json`; an `application/json`-only check drops their details.
-- There is no trainer endpoint for one workout session; read it from `GET /clients/{id}/workout-sessions`, which includes the exercises.
-- A message in `location.state` can arrive after the first render; `useToast` reads it during render.
-- Register new design tokens in `src/utils/cn.ts`. `tokens.css` must stay byte-identical to the mobile repo; do not edit it in only one repo.
-- Exercise usage comes from routine list requests and can be unavailable; a displayed zero is not proof that deletion will succeed.
-
-## Next steps
-- Deploy the TP web app to its hosting service and bind `formai.quedena.studio`; the backend already accepts that CORS origin.
-- TB2: build W6 and W7 when `formai-api` exposes the recognition report and machine catalog.
-- Backend follow-ups: return trainer name on sign-in, correct `client-overviews` after deactivation, and expose routine clients and exercise usage counts directly.
+## Next work
+- TB2 administrator/machine catalog and recognition screens remain outside this increment.
+- Existing backend follow-ups: trainer name on sign-in and deactivated client overviews.
