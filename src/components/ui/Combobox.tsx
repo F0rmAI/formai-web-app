@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { cn } from '@/utils/cn'
 import { Chip } from './Chip'
 import { Icon } from './Icon'
@@ -79,11 +79,23 @@ export function Combobox({
   emptyMessage = 'Sin resultados',
   className,
 }: ComboboxProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const id = useId()
   const listId = `${id}-list`
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [active, setActive] = useState(0)
+
+  useEffect(() => {
+    if (!isOpen) return
+    // Close after the outside click completes, so collapsing this in-flow list cannot move
+    // the clicked control between pointer-down and pointer-up and swallow its first click.
+    const closeOutside = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener('click', closeOutside)
+    return () => document.removeEventListener('click', closeOutside)
+  }, [isOpen])
 
   const matches = options.filter((option) => normalize(option.label).includes(normalize(query.trim())))
   const activeIndex = Math.min(active, matches.length - 1)
@@ -112,8 +124,9 @@ export function Combobox({
   return (
     <div
       className={cn('flex w-full flex-col gap-sm', className)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false)
+      ref={containerRef}
+      onKeyDown={(event) => {
+        if (event.key === 'Tab') setIsOpen(false)
       }}
     >
       <label htmlFor={id}>
