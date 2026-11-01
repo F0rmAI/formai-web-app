@@ -104,6 +104,23 @@ export interface AssignRoutineInput {
   startDate: string
   /** Days on which the client trains, in backend weekday notation. */
   trainingDays: TrainingDay[]
+  /** Optional message of the trainer for every client listed, up to 500 characters. */
+  note?: string
+}
+
+/**
+ * One client's own target load and/or rest for an exercise of a routine session; `null` keeps
+ * the routine's value.
+ */
+export interface PrescriptionAdjustment {
+  /** Order of the session within the routine, starting at `1`. */
+  sessionOrder: number
+  /** Identifier of the exercise in that session. */
+  exerciseId: string
+  /** Target load in kilograms for this client, or `null` to keep the routine's. */
+  targetLoadKg: number | null
+  /** Rest between sets in seconds for this client, or `null` to keep the routine's. */
+  restSeconds: number | null
 }
 
 /** Weekday values accepted by routine assignments. */

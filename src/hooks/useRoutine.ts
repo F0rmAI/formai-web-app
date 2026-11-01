@@ -54,8 +54,8 @@ export function useRoutine(routineId: string) {
   const { run: runAssignment } = assignment
   const { refetch: refetchClients } = clients
   const assign = useCallback(
-    async (clientIds: string[], startDate: string, trainingDays: TrainingDay[]) => {
-      const result = await runAssignment(routineId, { clientIds, startDate, trainingDays })
+    async (clientIds: string[], startDate: string, trainingDays: TrainingDay[], note?: string) => {
+      const result = await runAssignment(routineId, { clientIds, startDate, trainingDays, note })
       refetch()
       refetchClients()
       return result

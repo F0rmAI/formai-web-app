@@ -13,6 +13,7 @@ export { ClientAssignmentHistory, type ClientAssignmentHistoryProps } from './Cl
 export { ClientStatusBadge, type ClientStatusBadgeProps } from './ClientStatusBadge'
 export { ClientsTable, type ClientsTableProps } from './ClientsTable'
 export { EditBodyProfileModal, type EditBodyProfileModalProps } from './EditBodyProfileModal'
+export { PersonalizeAssignmentModal, type PersonalizeAssignmentModalProps } from './PersonalizeAssignmentModal'
 export { RegenerateCodeModal, type RegenerateCodeModalProps } from './RegenerateCodeModal'
 export { RegisterClientModal, type RegisterClientModalProps } from './RegisterClientModal'
 export { EditClientNameModal, type EditClientNameModalProps } from './EditClientNameModal'

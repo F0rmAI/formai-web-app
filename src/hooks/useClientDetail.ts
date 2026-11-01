@@ -10,14 +10,16 @@ import { clientsService } from '@/services/clients.service'
 import type { UpdateBodyProfileInput } from '@/types/client'
 import { useAsyncAction } from './useAsyncAction'
 import { useAsyncData } from './useAsyncData'
+import { usePersonalizeAssignment } from './usePersonalizeAssignment'
 
 /**
  * Loads one client and exposes the actions of its detail page.
  *
  * @param clientId - Identifier of the client; changing it loads another client.
  * @returns The `client` loaded (`null` until it arrives), the `isLoading` and `error` state,
- * `refetch`, and three actions with their state: `saveBodyProfile` (`isSavingProfile`,
- * `profileError`, `resetProfileError`), `rename` (`isRenaming`, `renameError`,
+ * `refetch`, and four actions with their state: `saveBodyProfile` (`isSavingProfile`,
+ * `profileError`, `resetProfileError`), `personalizeAssignment` (`isPersonalizing`,
+ * `personalizeError`, `resetPersonalizeError`), `rename` (`isRenaming`, `renameError`,
  * `resetRenameError`) and `deactivate` (`isDeactivating`, `deactivateError`,
  * `resetDeactivateError`). Each action resolves with an `ActionResult`.
  *
@@ -38,6 +40,7 @@ export function useClientDetail(clientId: string) {
     clientsService.deactivate,
     'No pudimos desactivar a este cliente. Inténtalo de nuevo.',
   )
+  const personalization = usePersonalizeAssignment(clientId, refetch)
   const renaming = useAsyncAction(clientsService.rename, 'No pudimos cambiar el nombre. Inténtalo de nuevo.')
 
   const { run: runProfile } = profile
@@ -75,6 +78,7 @@ export function useClientDetail(clientId: string) {
       : profile.error?.code === 'INVALID_HEIGHT' ? 'height' as const
         : profile.error?.code === 'INVALID_WEIGHT' ? 'weight' as const : null,
     resetProfileError: profile.reset,
+    ...personalization,
     rename,
     isRenaming: renaming.isRunning,
     renameError: renaming.error?.message ?? null,

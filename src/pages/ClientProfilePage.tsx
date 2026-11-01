@@ -7,10 +7,16 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClientAssignmentHistory, ClientProfileCard, ClientRoutineCard, EditBodyProfileModal } from '@/components/clients'
+import {
+  ClientAssignmentHistory,
+  ClientProfileCard,
+  ClientRoutineCard,
+  EditBodyProfileModal,
+  PersonalizeAssignmentModal,
+} from '@/components/clients'
 import { useClientOutlet } from '@/hooks/useClientOutlet'
 import { ROUTES } from '@/navigation/routes'
-import type { UpdateBodyProfileInput } from '@/types/client'
+import type { PersonalizeAssignmentInput, UpdateBodyProfileInput } from '@/types/client'
 
 /**
  * Shows the body profile and the current routine of a client, with the modal that edits the
@@ -21,8 +27,28 @@ import type { UpdateBodyProfileInput } from '@/types/client'
  */
 export function ClientProfilePage() {
   const navigate = useNavigate()
-  const { client, saveBodyProfile, isSavingProfile, profileError, profileErrorField, resetProfileError, showToast } = useClientOutlet()
+  const {
+    client,
+    refetch,
+    saveBodyProfile,
+    isSavingProfile,
+    profileError,
+    profileErrorField,
+    resetProfileError,
+    personalizeAssignment,
+    isPersonalizing,
+    personalizeError,
+    resetPersonalizeError,
+    showToast,
+  } = useClientOutlet()
   const [isEditing, setIsEditing] = useState(false)
+  const [isPersonalizingOpen, setIsPersonalizingOpen] = useState(false)
+
+  const handlePersonalize = async (input: PersonalizeAssignmentInput) => {
+    if (!(await personalizeAssignment(input))) return
+    setIsPersonalizingOpen(false)
+    showToast('Personalización guardada · el cliente la verá al sincronizar su app')
+  }
 
   const handleSave = async (input: UpdateBodyProfileInput) => {
     if (!(await saveBodyProfile(input))) return
@@ -42,11 +68,28 @@ export function ClientProfilePage() {
         />
         <ClientRoutineCard
           routine={client.routine}
+          onRetry={refetch}
           onEdit={() => client.routine && navigate(ROUTES.routineEdit(client.routine.id))}
           onViewVersions={() => client.routine && navigate(ROUTES.routineVersions(client.routine.id))}
+          onPersonalize={() => {
+            resetPersonalizeError()
+            setIsPersonalizingOpen(true)
+          }}
         />
       </div>
       <div className="mt-2xl"><ClientAssignmentHistory assignments={client.assignments} /></div>
+
+      {isPersonalizingOpen && client.routine && (
+        <PersonalizeAssignmentModal
+          sessions={client.routine.sessions}
+          note={client.routine.note}
+          adjustments={client.routine.adjustments}
+          isSubmitting={isPersonalizing}
+          error={personalizeError}
+          onSubmit={(input) => void handlePersonalize(input)}
+          onClose={() => setIsPersonalizingOpen(false)}
+        />
+      )}
 
       {isEditing && (
         <EditBodyProfileModal

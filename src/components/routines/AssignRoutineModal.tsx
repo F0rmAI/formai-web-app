@@ -47,7 +47,7 @@ export interface AssignRoutineModalProps {
   /** Message of the failed assignment. */
   error: string | null
   /** Called with selected clients, start date and training days. */
-  onSubmit: (clients: ClientSummary[], startDate: string, trainingDays: TrainingDay[]) => void
+  onSubmit: (clients: ClientSummary[], startDate: string, trainingDays: TrainingDay[], note: string) => void
   /** Called when the user cancels or dismisses the modal. */
   onClose: () => void
 }
@@ -75,6 +75,7 @@ export function AssignRoutineModal({
   const [startDate, setStartDate] = useState(toIsoDate())
   const [trainingDays, setTrainingDays] = useState<TrainingDay[]>([])
   const [daysTouched, setDaysTouched] = useState(false)
+  const [note, setNote] = useState('')
 
   const selected = clients.filter((client) => selectedIds.includes(client.id))
   const blocked = selected.find((client) => client.status !== 'ACTIVE')
@@ -89,8 +90,13 @@ export function AssignRoutineModal({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setDaysTouched(true)
-    if (selected.length > 0 && !blocked && startDate && daysMatch) {
-      onSubmit(selected, startDate, TRAINING_DAYS.map(({ day }) => day).filter((day) => trainingDays.includes(day)))
+    if (!isSubmitting && selected.length > 0 && !blocked && startDate && daysMatch && note.length <= 500) {
+      onSubmit(
+        selected,
+        startDate,
+        TRAINING_DAYS.map(({ day }) => day).filter((day) => trainingDays.includes(day)),
+        note.trim(),
+      )
     }
   }
 
@@ -156,6 +162,15 @@ export function AssignRoutineModal({
             <Text variant="body-m" tone="secondary">{toDaysHint(sessionCount)}</Text>
           )}
         </div>
+        <TextField
+          multiline
+          label="Nota para el cliente (opcional)"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          leadingIcon="sticky_note_2"
+          helper="La verá en su app junto a la rutina. Puedes ajustar cargas y descansos por cliente desde su ficha."
+          maxLength={500}
+        />
       </form>
     </Modal>
   )

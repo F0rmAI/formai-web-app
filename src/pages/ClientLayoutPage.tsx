@@ -38,6 +38,10 @@ function ClientLayout({ clientId }: { clientId: string }) {
     profileError,
     profileErrorField,
     resetProfileError,
+    personalizeAssignment,
+    isPersonalizing,
+    personalizeError,
+    resetPersonalizeError,
     rename,
     isRenaming,
     renameError,
@@ -84,11 +88,16 @@ function ClientLayout({ clientId }: { clientId: string }) {
 
   const context: ClientOutletContext = {
     client,
+    refetch,
     saveBodyProfile: async (input) => (await saveBodyProfile(input)).ok,
     isSavingProfile,
     profileError,
     profileErrorField,
     resetProfileError,
+    personalizeAssignment: async (input) => (await personalizeAssignment(input)).ok,
+    isPersonalizing,
+    personalizeError,
+    resetPersonalizeError,
     showToast,
   }
 

@@ -265,12 +265,12 @@ export const routinesService = {
    * Assigns a routine to clients; the routine each one was following is closed.
    *
    * @param routineId - Identifier of the routine.
-   * @param input - Clients and first day of the assignment.
+   * @param input - Clients, first day, training days and the optional note of the assignment.
    * @throws {@link ServiceError} with code `CLIENT_NOT_ASSIGNABLE` when a client is not active.
    */
   async assign(routineId: string, input: AssignRoutineInput): Promise<void> {
     try {
-      await apiClient.post(`/routines/${routineId}/assignments`, input)
+      await apiClient.post(`/routines/${routineId}/assignments`, { ...input, note: input.note?.trim() || null })
     } catch (error) {
       throwServiceError<RoutinesErrorCode>(
         error,

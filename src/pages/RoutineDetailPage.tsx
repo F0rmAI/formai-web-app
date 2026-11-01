@@ -22,6 +22,7 @@ interface PendingAssignment {
   clients: ClientSummary[]
   startDate: string
   trainingDays: TrainingDay[]
+  note: string
   replaced: { client: ClientSummary; routineName: string }[]
 }
 
@@ -82,11 +83,12 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     navigate(ROUTES.routine(result.value.id), { state })
   }
 
-  const runAssignment = async ({ clients: selected, startDate, trainingDays }: PendingAssignment) => {
+  const runAssignment = async ({ clients: selected, startDate, trainingDays, note }: PendingAssignment) => {
     const result = await assign(
       selected.map((client) => client.id),
       startDate,
       trainingDays,
+      note || undefined,
     )
     setPending(null)
     if (!result.ok) {
@@ -97,14 +99,19 @@ function RoutineDetail({ routineId }: { routineId: string }) {
     showToast(`Rutina asignada a ${toNames(selected)} desde el ${formatDate(startDate, 'day')}`)
   }
 
-  const handleAssign = async (selected: ClientSummary[], startDate: string, trainingDays: TrainingDay[]) => {
+  const handleAssign = async (
+    selected: ClientSummary[],
+    startDate: string,
+    trainingDays: TrainingDay[],
+    note: string,
+  ) => {
     const result = await inspectAssignments(selected.map((client) => client.id))
     if (!result.ok) return
     const replaced = result.value.flatMap(({ clientId, current }) => {
       const client = selected.find((item) => item.id === clientId)
       return client && current && current.routineId !== routine.id ? [{ client, routineName: current.routineName }] : []
     })
-    const assignment = { clients: selected, startDate, trainingDays, replaced }
+    const assignment = { clients: selected, startDate, trainingDays, note, replaced }
     if (replaced.length === 0) {
       void runAssignment(assignment)
       return
@@ -184,7 +191,7 @@ function RoutineDetail({ routineId }: { routineId: string }) {
           sessionCount={routine.sessions.length}
           isSubmitting={isAssigning}
           error={assignError}
-          onSubmit={(selected, startDate, trainingDays) => void handleAssign(selected, startDate, trainingDays)}
+          onSubmit={(selected, startDate, trainingDays, note) => void handleAssign(selected, startDate, trainingDays, note)}
           onClose={() => setIsAssignOpen(false)}
         />
       )}

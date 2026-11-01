@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import type { TrainingDay } from '@/types/routine'
+import type { PrescriptionAdjustment, RoutineSession, TrainingDay } from '@/types/routine'
 
 /**
  * Lifecycle states of a client.
@@ -83,6 +83,23 @@ export interface CurrentRoutine {
   version: number | null
   /** Training days of the current assignment, in Monday to Sunday order. */
   trainingDays: TrainingDay[]
+  /** Sessions of the routine's current version, with the routine's prescriptions. */
+  sessions: RoutineSession[]
+  /** The trainer's note for this client, or `null` when there is none. */
+  note: string | null
+  /** This client's own target loads and rests, applied over the routine's prescriptions. */
+  adjustments: PrescriptionAdjustment[]
+}
+
+/**
+ * Data that personalizes the current assignment of a client; it replaces the previous note and
+ * adjustments.
+ */
+export interface PersonalizeAssignmentInput {
+  /** Note for the client; empty removes it. */
+  note: string
+  /** Target loads and rests that differ from the routine's. */
+  adjustments: PrescriptionAdjustment[]
 }
 
 /** One assignment in the history of a client. */

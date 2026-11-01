@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import { useId, type InputHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import type { IconName } from '@/types/ui'
 import { cn } from '@/utils/cn'
 import { Icon } from './Icon'
@@ -14,7 +14,7 @@ import { Text } from './Text'
 /**
  * Props accepted by {@link TextField}.
  */
-export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+interface SharedTextFieldProps {
   /** Label shown above the field. */
   label: string
   /** Help text shown below the field. */
@@ -30,6 +30,18 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   /** Accessible label of the trailing icon action. */
   trailingIconLabel?: string
 }
+
+/** Native input or multiline textarea props, with platform-specific change events. */
+export type TextFieldProps = SharedTextFieldProps & (
+  | (Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+    /** Renders a single-line input. @defaultValue `false` */
+    multiline?: false
+  })
+  | (TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    /** Renders a multiline note field. */
+    multiline: true
+  })
+)
 
 /**
  * Renders a labeled text input that fills the available width.
@@ -56,6 +68,20 @@ export function TextField({
   const messageId = `${inputId}-message`
   const hasError = Boolean(error)
   const message = error ?? helper
+  const common = {
+    id: inputId,
+    'aria-invalid': hasError || undefined,
+    'aria-describedby': message ? messageId : undefined,
+    className: 'min-w-0 flex-1 bg-transparent text-body-l text-content-primary outline-none placeholder:text-content-muted',
+  } as const
+  let control
+  if (props.multiline) {
+    const { multiline: _multiline, ...nativeProps } = props
+    control = <textarea rows={4} {...nativeProps} {...common} />
+  } else {
+    const { multiline: _multiline, ...nativeProps } = props
+    control = <input {...nativeProps} {...common} />
+  }
 
   return (
     <div className={cn('flex w-full flex-col gap-sm', className)}>
@@ -67,7 +93,8 @@ export function TextField({
 
       <div
         className={cn(
-          'flex h-12 items-center gap-md overflow-hidden rounded-md bg-surface-card px-xl transition-colors',
+          'flex gap-md overflow-hidden rounded-md bg-surface-card px-xl transition-colors',
+          props.multiline ? 'items-start py-md' : 'h-12 items-center',
           hasError
             ? 'border-[1.5px] border-error'
             : 'border border-line-outline focus-within:border-[1.5px] focus-within:border-primary',
@@ -76,13 +103,7 @@ export function TextField({
         {leadingIcon && (
           <Icon name={leadingIcon} size={20} className={hasError ? 'text-error' : 'text-content-muted'} />
         )}
-        <input
-          id={inputId}
-          aria-invalid={hasError || undefined}
-          aria-describedby={message ? messageId : undefined}
-          className="min-w-0 flex-1 bg-transparent text-body-l text-content-primary outline-none placeholder:text-content-muted"
-          {...props}
-        />
+        {control}
         {trailingIcon &&
           (onTrailingIconClick ? (
             <button

@@ -14,10 +14,11 @@ import type {
   ClientStatusFilter,
   ClientSummary,
   CurrentRoutine,
+  PersonalizeAssignmentInput,
   RegisterClientInput,
   UpdateBodyProfileInput,
 } from '@/types/client'
-import type { TrainingDay } from '@/types/routine'
+import type { PrescriptionAdjustment, RoutineSession, TrainingDay } from '@/types/routine'
 import { formatDate, formatDateTime } from '@/utils/format'
 import { ApiError, apiClient } from './api-client'
 import { ServiceError, throwServiceError } from './service-error'
@@ -31,7 +32,7 @@ import { ServiceError, throwServiceError } from './service-error'
  * - `INVALID_BODY_PROFILE`: the server rejected the profile values.
  * - `UNEXPECTED`: any other failure.
  */
-export type ClientsErrorCode = 'CLIENT_NOT_FOUND' | 'INVALID_CLIENT_NAME' | 'INVALID_BODY_PROFILE' | 'INVALID_GOAL' | 'INVALID_HEIGHT' | 'INVALID_WEIGHT' | 'ALREADY_ACTIVATED' | 'UNEXPECTED'
+export type ClientsErrorCode = 'CLIENT_NOT_FOUND' | 'INVALID_CLIENT_NAME' | 'INVALID_BODY_PROFILE' | 'INVALID_GOAL' | 'INVALID_HEIGHT' | 'INVALID_WEIGHT' | 'ALREADY_ACTIVATED' | 'NO_CURRENT_ASSIGNMENT' | 'INVALID_ADJUSTMENT' | 'UNEXPECTED'
 
 /** Page size that fits the whole portfolio of a trainer in one request. */
 const PAGE_SIZE = 100
@@ -93,10 +94,22 @@ interface AssignmentResource {
   endDate: string | null
   trainingDays: TrainingDay[]
   current: boolean
+  note: string | null
+  adjustments: PrescriptionAdjustment[] | null
 }
 
 interface RoutineVersionHolder {
   currentVersion: number
+  sessions: RoutineSession[]
+}
+
+function toAdjustments(adjustments: PrescriptionAdjustment[] | null): PrescriptionAdjustment[] {
+  return (adjustments ?? []).map((adjustment) => ({
+    sessionOrder: adjustment.sessionOrder,
+    exerciseId: adjustment.exerciseId,
+    targetLoadKg: adjustment.targetLoadKg === null ? null : Number(adjustment.targetLoadKg),
+    restSeconds: adjustment.restSeconds,
+  }))
 }
 
 // The list endpoint does not return the expiration of the activation code. Expirations learned in
@@ -168,13 +181,28 @@ async function getCurrentRoutine(assignments: AssignmentResource[], signal?: Abo
   if (!current) return null
   const routine = await apiClient
     .get<RoutineVersionHolder>(`/routines/${current.routineId}`, { signal })
-    .catch(() => null)
+    .catch((error: unknown) => {
+      if (signal?.aborted) throw error
+      return null
+    })
   return {
     id: current.routineId,
     name: current.routineName?.trim() || 'Rutina de otro entrenador',
     assignedSince: formatDate(current.startDate, 'long'),
     version: routine?.currentVersion ?? null,
     trainingDays: current.trainingDays ?? [],
+    sessions: (routine?.sessions ?? []).map((session) => ({
+      order: session.order,
+      label: session.label,
+      exercises: (session.exercises ?? []).map((exercise) => ({
+        ...exercise,
+        targetLoadKg: Number(exercise.targetLoadKg) || 0,
+      })),
+    })),
+    note: current.note?.trim() || null,
+    adjustments: toAdjustments(current.adjustments).filter((adjustment) => !routine ||
+      routine.sessions?.some((session) => session.order === adjustment.sessionOrder &&
+        session.exercises?.some((exercise) => exercise.exerciseId === adjustment.exerciseId))),
   }
 }
 
@@ -199,6 +227,30 @@ const UNEXPECTED = { code: 'UNEXPECTED', message: 'No pudimos completar la opera
  * Calls the client endpoints of the backend.
  */
 export const clientsService = {
+  /**
+   * Replaces the note and the adjustments of a client's current assignment, without changing the
+   * routine other clients may follow.
+   *
+   * @param clientId - Identifier of the client.
+   * @param input - Note and adjustments; an empty note or list removes them.
+   * @throws {@link ServiceError} with code `NO_CURRENT_ASSIGNMENT`, `INVALID_ADJUSTMENT` or `CLIENT_NOT_FOUND`.
+   */
+  async personalizeAssignment(clientId: string, input: PersonalizeAssignmentInput): Promise<void> {
+    try {
+      await apiClient.put(`/clients/${clientId}/assignments/current`, {
+        note: input.note.trim() || null,
+        adjustments: input.adjustments,
+      })
+    } catch (error) {
+      throwServiceError<ClientsErrorCode>(error, {
+        400: { code: 'INVALID_ADJUSTMENT', message: 'La nota admite hasta 500 caracteres.' },
+        403: NOT_FOUND,
+        404: { code: 'NO_CURRENT_ASSIGNMENT', message: 'Este cliente ya no tiene una rutina vigente.' },
+        422: { code: 'INVALID_ADJUSTMENT', message: 'Revisa las cargas y descansos: deben ser cero o más.' },
+      }, UNEXPECTED)
+    }
+  },
+
   /** Reads the current assignment of one selected client before replacing a routine. */
   async getCurrentAssignment(clientId: string, signal?: AbortSignal): Promise<{ routineId: string; routineName: string } | null> {
     try {

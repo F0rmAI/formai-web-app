@@ -6,7 +6,7 @@
  */
 
 import { useOutletContext } from 'react-router-dom'
-import type { ClientDetail, UpdateBodyProfileInput } from '@/types/client'
+import type { ClientDetail, PersonalizeAssignmentInput, UpdateBodyProfileInput } from '@/types/client'
 import type { ToastTone } from '@/types/ui'
 
 /**
@@ -15,6 +15,8 @@ import type { ToastTone } from '@/types/ui'
 export interface ClientOutletContext {
   /** Client being shown. */
   client: ClientDetail
+  /** Reloads the client and its routine after a failed read. */
+  refetch: () => void
   /** Saves the body profile; resolves with `true` when it succeeds. */
   saveBodyProfile: (input: UpdateBodyProfileInput) => Promise<boolean>
   /** Whether the body profile is being saved. */
@@ -25,6 +27,14 @@ export interface ClientOutletContext {
   profileErrorField: 'goal' | 'height' | 'weight' | null
   /** Clears the message of the failed save. */
   resetProfileError: () => void
+  /** Saves the client's note and adjustments; resolves with `true` when it succeeds. */
+  personalizeAssignment: (input: PersonalizeAssignmentInput) => Promise<boolean>
+  /** Whether the personalization is being saved. */
+  isPersonalizing: boolean
+  /** Message of the failed save of the personalization. */
+  personalizeError: string | null
+  /** Clears the message of the failed personalization. */
+  resetPersonalizeError: () => void
   /** Shows a short message over the page. */
   showToast: (message: string, tone?: ToastTone) => void
 }
